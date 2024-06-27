@@ -457,7 +457,7 @@ def run_script(listmodels,directory,terminal_text):
                             "safebrowsing.disable_download_protection": True
                         })
                         ascii_nd2 = """
----------------------------------------------Connect lại server -----------------------------------------------
+........................Đang kết nối lại website..............................
                         """
                         log_terminal(ascii_nd2)
                         prefs = {"credentials_enable_service": False,
@@ -560,7 +560,7 @@ def run_script(listmodels,directory,terminal_text):
                             break
                     if patient_result.code == "" or patient_result.primaryICD10 == "":
                         errorDrug += 1
-                        log_terminal(f"Dữ liệu bệnh nhân trống, mã bệnh nhân {cod}, đang làm lại...")
+                        log_terminal(f"Dữ liệu bệnh nhân trống, mã bệnh nhân {cod}, đang cố thử lại...")
                         if errorDrug >= 10:
                             log_terminal(f"Quá nhiều lỗi dữ liệu trống, bỏ qua mã bệnh nhân {cod}")
                             success = True  # Bỏ qua mã bệnh nhân hiện tại

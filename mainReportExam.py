@@ -540,6 +540,9 @@ def run_Script(directory,terminal_text):
             ws = wb.create_sheet(title=sheet_name)
             log_terminal(".........................Tạo Sheet thành công............................................")
             # Thêm dữ liệu vào sheet
+            for r in range(3):
+                ws.append([])
+
             for r in dataframe_to_rows(df, index=False, header=False):
                 ws.append(r)
 
