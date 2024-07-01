@@ -207,6 +207,11 @@ def open_secondary_interface():
     import mainReportExam as secondary  # Import file secondary.py và mở giao diện mới
     secondary.run_secondary_interface(app)
 
+def open_presciption_interface():
+    app.withdraw()  # Ẩn cửa sổ chính
+    import mainPrescription as secondary  # Import file secondary.py và mở giao diện mới
+    secondary.run_secondary_interface(app)
+
 def clear_requests(driver):
     driver.requests.clear()
 
@@ -638,6 +643,7 @@ def run_script(listmodels,directory,terminal_text):
             messagebox.showerror(title="Lỗi", message=f"Lỗi quá trình tạo file excel không thành công! {e}")  
     
     # Đóng cửa sổ terminal và hiển thị lại cửa sổ chính
+    terminal_window.destroy()
     app.deiconify()
 
 def handle_file_excel():
@@ -722,7 +728,7 @@ app.config(menu=menu_bar)
 # Thêm mục vào menu bar
 report_menu = Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Xuất báo cáo", menu=report_menu)
-report_menu.add_command(label="Xuất báo cáo toa khám bệnh", command=open_secondary_interface)
+report_menu.add_command(label="Xuất báo cáo toa khám bệnh", command=open_presciption_interface)
 report_menu.add_command(label="Xuất báo cáo đợt khám bệnh", command=open_secondary_interface)
 
 detail_menu = Menu(menu_bar, tearoff=0)

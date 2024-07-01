@@ -40,6 +40,7 @@ class PatientModel:
     dateExam = ""
     status = ""
     prescription = ""
+    doctor = ""
 
     def to_dict(self):
         return {
@@ -48,6 +49,7 @@ class PatientModel:
             "Ngày khám": self.dateExam,
             "Mã toa thuốc": self.prescription,
             "Tình trạng": self.status,
+            "Bác sĩ": self.doctor,
         }
 
     def printModel(self):
@@ -57,6 +59,7 @@ class PatientModel:
         print(f"Ngày khám: {self.dateExam}")
         print(f"Mã toa thuốc: {self.prescription}")
         print(f"Tình trạng: {self.status}")
+        print(f"Bác sĩ: {self.doctor}")
         print("-------------------------------------------------")
 
     def ExportModel(self):
@@ -65,7 +68,8 @@ class PatientModel:
             ("Mã bệnh nhân:", self.code),
             ("Ngày khám:", self.dateExam),
             ("Mã toa thuốc:", self.prescription),
-            ("Tình trạng:", self.status)
+            ("Tình trạng:", self.status),
+            ("Bác sĩ:", self.doctor)
         ]
 
         # Đảm bảo tất cả các giá trị không phải là None
@@ -242,7 +246,7 @@ def format_sheet(ws, date_str):
     date_cell.alignment = Alignment(horizontal="center")
 
     # Dòng header các cột
-    headers = ["STT", "Mã bệnh nhân", "Ngày khám", "Mã toa thuốc", "Tình trạng"]
+    headers = ["STT", "Mã bệnh nhân", "Ngày khám", "Mã toa thuốc", "Tình trạng", "Bác sĩ"]
     header_fill = PatternFill(start_color="90EE90", end_color="90EE90", fill_type="solid")
 
     for col_num, header in enumerate(headers, 1):
@@ -527,6 +531,7 @@ def run_Script(directory,terminal_text):
                             patientmd.dateExam = date.strftime("%Y-%m-%d")
                             patientmd.status = find_status(pi.get('status'))
                             patientmd.prescription = pi.get('prescription_id')
+                            patientmd.doctor = pi.get('doctor_name')
                             listPatient.append(patientmd)
                             log_terminal(patientmd.ExportModel())
                             demstt+=1
