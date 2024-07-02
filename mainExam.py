@@ -590,7 +590,8 @@ def run_script(listmodels,directory,terminal_text):
                             log_terminal(".........................Ghi tạm vào file CSV........................................")
                         else:
                             breakSTT = breakSTT + 1
-                except:
+                except Exception as e:
+                    print(e)
                     success = False
         # Ghi dữ liệu còn lại vào file CSV nếu có
         if patient_result_list:
