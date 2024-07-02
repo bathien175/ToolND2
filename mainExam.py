@@ -209,8 +209,8 @@ def open_secondary_interface():
 
 def open_presciption_interface():
     app.withdraw()  # Ẩn cửa sổ chính
-    import mainPrescription as secondary  # Import file secondary.py và mở giao diện mới
-    secondary.run_secondary_interface(app)
+    import mainPrescription as scription  # Import file secondary.py và mở giao diện mới
+    scription.run_secondary_interface(app)
 
 def clear_requests(driver):
     driver.requests.clear()
@@ -469,7 +469,7 @@ def run_script(listmodels,directory,terminal_text):
                             "profile.password_manager_enabled": False}
                         chrome_options.add_experimental_option("prefs", prefs)
                         chrome_options.add_argument("--headless")  # Chạy trình duyệt trong chế độ headless
-                        #chrome_options.add_argument("--disable-gpu")  # Tăng tốc độ trên các hệ điều hành không có GPU
+                        chrome_options.add_argument("--disable-gpu")  # Tăng tốc độ trên các hệ điều hành không có GPU
                         chrome_options.add_argument("--window-size=1920x1080")  # Thiết lập kích thước cửa sổ mặc định
                         driver = webdriver.Chrome(options=chrome_options)
                         url = "http://192.168.0.77/dist/#!/login"
@@ -643,7 +643,6 @@ def run_script(listmodels,directory,terminal_text):
             messagebox.showerror(title="Lỗi", message=f"Lỗi quá trình tạo file excel không thành công! {e}")  
     
     # Đóng cửa sổ terminal và hiển thị lại cửa sổ chính
-    terminal_window.destroy()
     app.deiconify()
 
 def handle_file_excel():
@@ -733,7 +732,7 @@ report_menu.add_command(label="Xuất báo cáo đợt khám bệnh", command=op
 
 detail_menu = Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Chi tiết khám", menu=detail_menu)
-detail_menu.add_command(label="Chi tiết toa thuốc", command=open_secondary_interface)
+detail_menu.add_command(label="Chi tiết toa thuốc", command=open_presciption_interface)
 detail_menu.add_command(label="Chi tiết chỉ định", command=open_secondary_interface)
 
 loadingData()

@@ -36,13 +36,13 @@ class PatientModel:
     o_name = ""
     p_name =""
     date = ""
-    morning = 0.0
-    noon = 0.0
-    afternoon = 0.0
-    evening = 0.0
+    morning = ""
+    noon = ""
+    afternoon = ""
+    evening = ""
     quantity_num = 0
     solan_ngay = 0
-    num_per_time = 0.0
+    num_per_time = ""
     unit_used = ""
     note = ""
 
@@ -109,6 +109,12 @@ def get_unit(key):
         return value.iloc[0]
     else:
         return None
+
+def check_valid_used(key):
+    if key == "" or key == "0":
+        return "0"
+    else:
+        return key
 
 def start_script_thread(listmodels, directory):
     global script_thread  # Khai báo biến toàn cục
@@ -288,8 +294,13 @@ def run_script(listmodels,directory,terminal_text):
                                                         "'patient_info_payment')]")
                         liElement.click()
                         time.sleep(1)
+                    try:
+                        passForm = driver.find_element(By.XPATH, "//button[contains(text(), ' Bỏ qua')]")
+                        passForm.click()
+                        time.sleep(0.1)
+                    except:
+                        print("Frist access")
                     cod = str(pt)
-                    patient_result = PatientModel()
                     patientcode = driver.find_element(By.NAME, 'patient_code_qr')
                     patientcode.clear()
                     patientcode.send_keys(cod)
@@ -299,6 +310,9 @@ def run_script(listmodels,directory,terminal_text):
                     time.sleep(0.1)
                     btnThuoc = driver.find_element(By.XPATH, "//a[contains(text(), 'Thuốc Ngoại Trú ')]")
                     btnThuoc.click()
+                    time.sleep(0.1)
+                    btnPrescription = driver.find_element(By.XPATH, f"//a[contains(text(), '{str(pl)}')]")
+                    btnPrescription.click()
                     time.sleep(0.1)
                     #tìm mã toa phù hợp
                     for request in reversed(driver.requests):
@@ -310,36 +324,52 @@ def run_script(listmodels,directory,terminal_text):
                                     drug_data = json.loads(request.response.body)
                                     # đọc data
                                     drug_info = drug_data.get('data', {})
-                                    for di in drug_info:
-                                        if  di.get('check_in_out_hospital_record_id') == 0:
-                                            if di.get('prescription_id') == int(pl):
-                                                patient_result.date = dateKham
-                                                patient_result.shift = find_shift(di.get('shift_id'))
-                                                patient_result.primaryICD10Code = di.get('primary_icd10_code')
-                                                patient_result.primaryICD10 = di.get('primary_icd10')
-                                                patient_result.secondICD10 = di.get('second_icd10_code')
-                                                patient_result.diagnosis = di.get('diagnosis')
-                                                patient_result.status = filer_status(di.get('note'))
-                                                foundDrug = True
-                                                break
+                                    if drug_info[0].get('prescription_id') == int(pl):
+                                        foundDrug = True  
+                                        for di in drug_info:
+                                            patient_result = PatientModel()
+                                            patient_result.prescription_id = int(pl)
+                                            patient_result.code = di.get('code')
+                                            if di.get('code_atc') == "0":
+                                                patient_result.codeATC = ""
+                                            else:
+                                                patient_result.codeATC = di.get('code_atc')
+                                            patient_result.o_name= di.get('original_names')
+                                            patient_result.p_name= di.get('proprietary_name')
+                                            patient_result.morning = check_valid_used(di.get('morning'))
+                                            patient_result.noon = check_valid_used(di.get('noon'))
+                                            patient_result.afternoon = check_valid_used(di.get('afternoon'))
+                                            patient_result.evening = check_valid_used(di.get('evening'))
+                                            patient_result.date = dateKham
+                                            patient_result.quantity_num = int(di.get('quantity_num'))
+                                            patient_result.solan_ngay = di.get('solan_ngay')
+                                            patient_result.num_per_time = di.get('num_per_time')
+                                            patient_result.unit_used = get_unit(di.get('enum_unit_import_sell'))
+                                            patient_result.note = di.get('note')
+                                            if patient_result.code != '':
+                                                demstt+=1
+                                                patient_result.stt = demstt
+                                                patient_result_list.append(patient_result)
+                                                log_terminal(patient_result.ExportModel())
+                                            else:
+                                                errorDrug += 1
+                                                break      
+                                        break
+                                    else:
+                                        break          
                                 except:
                                     continue     
                         if foundDrug == True:
                             break
-                    if patient_result.code == "" or patient_result.primaryICD10 == "":
-                        errorDrug += 1
-                        log_terminal(f"Dữ liệu bệnh nhân trống, mã bệnh nhân {cod}, đang cố thử lại...")
+                    if errorDrug > 0:
+                        log_terminal(f"Dữ liệu toa thuốc trống, đang cố thử lại...")
                         if errorDrug >= 10:
-                            log_terminal(f"Quá nhiều lỗi dữ liệu trống, bỏ qua mã bệnh nhân {cod}")
-                            success = True  # Bỏ qua mã bệnh nhân hiện tại
+                            log_terminal(f"Quá nhiều lỗi dữ liệu trống, bỏ qua kết thúc quá trình cào tại mã bệnh nhân {cod}")
+                            app.destroy()
                         continue  # Thử lại mã bệnh nhân hiện tại
                     else:
                         errorDrug = 0  # Reset biến đếm lỗi khi dữ liệu hợp lệ
                         success = True
-                        demstt = demstt + 1
-                        patient_result.stt = demstt
-                        patient_result_list.append(patient_result)
-                        log_terminal(patient_result.ExportModel())
                         if demstt % 100 == 0:
                             # Ghi dữ liệu tạm thời vào file CSV
                             with open(csv_filename, mode='a', newline='', encoding='utf-8') as file:
@@ -366,7 +396,7 @@ def run_script(listmodels,directory,terminal_text):
         driver.quit()
         # Chuyển dữ liệu từ file CSV sang file Excel
         try:
-            df = pd.read_csv(csv_filename, encoding='utf-8-sig',dtype={'Mã bệnh nhân': str})
+            df = pd.read_csv(csv_filename, encoding='utf-8-sig')
             output_filename = os.path.join(directory, f"Prescription_Data_{dateKham}.xlsx")
             with pd.ExcelWriter(output_filename, engine="openpyxl") as writer:
                 df.to_excel(writer, index=False, sheet_name='Sheet1')
@@ -406,7 +436,6 @@ def run_script(listmodels,directory,terminal_text):
             messagebox.showerror(title="Lỗi", message=f"Lỗi quá trình tạo file excel không thành công! {e}")  
     
     # Đóng cửa sổ terminal và hiển thị lại cửa sổ chính
-    terminal_window.destroy()
     app.deiconify()
 
 def validate_input():
@@ -465,7 +494,7 @@ def run_secondary_interface(main_app):
 
     app.protocol("WM_DELETE_WINDOW", on_closing)
 
-    imgBG = customtkinter.CTkImage(Image.open("OIG3.jpg"))
+    imgBG = ImageTk.PhotoImage(Image.open("OIG3.jpg"))
     l1 = customtkinter.CTkLabel(master=app, image=imgBG)
     l1.pack()
 
