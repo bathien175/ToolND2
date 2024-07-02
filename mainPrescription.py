@@ -127,7 +127,7 @@ def open_terminal_window():
     terminal_window = tk.Toplevel(app)
     terminal_window.title("Màn hình chạy dữ liệu")
     terminal_window.attributes("-fullscreen", True)
-    icon_path = os.path.abspath("crawlLogo.ico")
+    icon_path = os.path.abspath("resource\crawlLogo.ico")
     terminal_window.iconbitmap(icon_path)
     terminal_text = tk.Text(terminal_window, bg="black", fg="green", insertbackground="green")
     terminal_text.pack(expand=True, fill='both')
