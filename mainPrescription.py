@@ -485,7 +485,7 @@ def run_secondary_interface(main_app):
     app = customtkinter.CTkToplevel(main_app)
     app.title("Lấy dữ liệu toa thuốc")
     center_window(app)
-    icon_path = os.path.abspath("crawlLogo.ico")
+    icon_path = os.path.abspath("resource\crawlLogo.ico")
     app.iconbitmap(icon_path)
 
     def on_closing():
@@ -494,7 +494,7 @@ def run_secondary_interface(main_app):
 
     app.protocol("WM_DELETE_WINDOW", on_closing)
 
-    imgBG = ImageTk.PhotoImage(Image.open("OIG3.jpg"))
+    imgBG = ImageTk.PhotoImage(Image.open("resource\OIG3.jpg"))
     l1 = customtkinter.CTkLabel(master=app, image=imgBG)
     l1.pack()
 
