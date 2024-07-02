@@ -189,7 +189,7 @@ def open_terminal_window():
     terminal_window = tk.Toplevel(app)
     terminal_window.title("Màn hình chạy dữ liệu")
     terminal_window.attributes("-fullscreen", True)
-    icon_path = os.path.abspath("crawlLogo.ico")
+    icon_path = os.path.abspath("resource\crawlLogo.ico")
     terminal_window.iconbitmap(icon_path)
     terminal_text = tk.Text(terminal_window, bg="black", fg="green", insertbackground="green")
     terminal_text.pack(expand=True, fill='both')
@@ -563,7 +563,7 @@ def run_secondary_interface(main_app):
     app = customtkinter.CTkToplevel(main_app)
     app.title("Lấy báo cáo sổ khám bệnh")
     center_window(app)
-    icon_path = os.path.abspath("crawlLogo.ico")
+    icon_path = os.path.abspath("resource\crawlLogo.ico")
     app.iconbitmap(icon_path)
 
     def on_closing():
@@ -572,7 +572,7 @@ def run_secondary_interface(main_app):
 
     app.protocol("WM_DELETE_WINDOW", on_closing)
 
-    imgBG = ImageTk.PhotoImage(Image.open("BG2.jpg"))
+    imgBG = ImageTk.PhotoImage(Image.open("resource\BG2.jpg"))
     l1 = customtkinter.CTkLabel(master=app, image=imgBG)
     l1.pack()
 

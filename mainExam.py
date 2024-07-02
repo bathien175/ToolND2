@@ -399,7 +399,7 @@ def open_terminal_window():
     terminal_window = tk.Toplevel(app)
     terminal_window.title("Màn hình chạy dữ liệu")
     terminal_window.attributes("-fullscreen", True)
-    icon_path = os.path.abspath("crawlLogo.ico")
+    icon_path = os.path.abspath("resource\crawlLogo.ico")
     terminal_window.iconbitmap(icon_path)
     terminal_text = tk.Text(terminal_window, bg="black", fg="green", insertbackground="green")
     terminal_text.pack(expand=True, fill='both')
@@ -450,7 +450,7 @@ def run_script(listmodels,directory,terminal_text):
                         chrome_options = webdriver.ChromeOptions()
                         chrome_options.add_experimental_option("prefs", {
                             "download.default_directory": directory,
-                            "profile.default_content_setting_values.automatic_downloads": 1,
+                            "profile.default_content_setting_values.autom   atic_downloads": 1,
                             "download.prompt_for_download": False,
                             "profile.default_content_settings.popups": 0,
                             "safebrowsing.enabled": "false",
@@ -712,7 +712,7 @@ def handle_file_excel():
 app = customtkinter.CTk()
 app.title("Lấy dữ liệu khám chữa bệnh")
 center_window(app)
-icon_path = os.path.abspath("crawlLogo.ico")
+icon_path = os.path.abspath("resource\crawlLogo.ico")
 app.iconbitmap(icon_path)
 
 # Tạo menu bar
@@ -732,7 +732,7 @@ detail_menu.add_command(label="Chi tiết chỉ định", command=open_secondary
 
 loadingData()
 
-imgBG = ImageTk.PhotoImage(Image.open("BG.png"))
+imgBG = ImageTk.PhotoImage(Image.open("resource\BG.png"))
 l1 = customtkinter.CTkLabel(master=app, image=imgBG)
 l1.pack()
 
