@@ -45,6 +45,7 @@ class PatientModel:
     num_per_time = ""
     unit_used = ""
     note = ""
+    mapping = 0
 
     def to_dict(self):
         return {
@@ -63,7 +64,8 @@ class PatientModel:
             "Số lần dùng / ngày": self.solan_ngay,
             "Lượng dùng mỗi lần": self.num_per_time,
             "Đơn vị dùng": self.unit_used,
-            "Ghi chú bác sĩ": self.note
+            "Ghi chú bác sĩ": self.note,
+            "IDMapping": self.mapping
         }
 
     def ExportModel(self):
@@ -83,7 +85,8 @@ class PatientModel:
             ("Số lần dùng / ngày", self.solan_ngay),
             ("Lượng dùng mỗi lần", self.num_per_time),
             ("Đơn vị dùng", self.unit_used),
-            ("Ghi chú bác sĩ", self.note)
+            ("Ghi chú bác sĩ", self.note),
+            ("IDMapping", self.mapping)
         ]
 
         # Tính toán độ rộng cột
@@ -101,8 +104,17 @@ class PatientModel:
         s += "+" + "-" * max_key_length + "+" + "-" * max_value_length + "+\n"
         return s
 #function
+def get_last_value_of_column(csv_filename, column_index):
+    last_value = None
+    with open(csv_filename, mode='r', encoding='utf-8-sig') as file:
+        reader = csv.reader(file)
+        for row in reader:
+            if len(row) > column_index:
+                last_value = row[column_index]
+    return last_value
+
 def get_unit(key):
-    df = pd.read_csv("enum_unit_usage.csv")
+    df = pd.read_csv("resource\enum_unit_usage.csv")
     # Tìm giá trị dựa trên khóa
     value = df.loc[df['key'] == key, 'value']
     if not value.empty:
@@ -227,22 +239,30 @@ def run_script(listmodels,directory,terminal_text):
         #csv file
         csv_filename = os.path.join(directory, f"Prescription_Data_{dateKham}.csv")
         # CSV file header
-        csv_header = ["STT","Mã toa thuốc" ,"Mã thuốc", "Mã atc", "Tên thuốc gốc", "Tên độc quyền", "Ngày", "Sáng", "Trưa", "Chiều", "Tối", "Số lượng kê", "Số lần dùng / ngày", "Lượng dùng mỗi lần", "Đơn vị dùng", "Ghi chú bác sĩ"]
+        csv_header = ["STT","Mã toa thuốc" ,"Mã thuốc", "Mã atc", "Tên thuốc gốc", "Tên độc quyền", "Ngày", "Sáng", "Trưa", "Chiều", "Tối", "Số lượng kê", "Số lần dùng / ngày", "Lượng dùng mỗi lần", "Đơn vị dùng", "Ghi chú bác sĩ","IDMapping"]
          # Kiểm tra nếu file CSV đã tồn tại và đếm số dòng
-        start_index = 0
+        start_stt = 0
+        start_code = ""
+        idmapcurrent = 0
         if os.path.exists(csv_filename):
             with open(csv_filename, mode='r', encoding='utf-8-sig') as file:
                 reader = csv.reader(file)
-                start_index = sum(1 for row in reader) - 1  # Trừ đi header
-        demstt = start_index
-        breakSTT = 0
-        for pt,pl in zip(patient_codes_list[start_index:],prescription_list[start_index:]):
+                next(reader) #bỏ qua dòng 1
+                for row in reader:
+                    if len(row) > 1:
+                        start_stt+=1
+                        start_code = row[16]
+        if start_code != "":
+            idmapcurrent = int(start_code)
+        demstt = start_stt
+        breakSTT = 1
+        for pt,pl in zip(patient_codes_list[idmapcurrent:],prescription_list[idmapcurrent:]):
             success = False
             errorDrug = 0
             errorLogWeb = 0 
             while not success:
                 try:
-                    if breakSTT == 0 and errorDrug == 0:
+                    if breakSTT == 1 and errorDrug == 0:
                         #chrome settings
                         chrome_options = webdriver.ChromeOptions()
                         chrome_options.add_experimental_option("prefs", {
@@ -300,6 +320,7 @@ def run_script(listmodels,directory,terminal_text):
                         time.sleep(0.1)
                     except:
                         print("Frist access")
+                        time.sleep(0.1)
                     cod = str(pt)
                     patientcode = driver.find_element(By.NAME, 'patient_code_qr')
                     patientcode.clear()
@@ -313,10 +334,11 @@ def run_script(listmodels,directory,terminal_text):
                     time.sleep(0.1)
                     btnPrescription = driver.find_element(By.XPATH, f"//a[contains(text(), '{str(pl)}')]")
                     btnPrescription.click()
-                    time.sleep(0.1)
+                    time.sleep(0.5)
                     #tìm mã toa phù hợp
                     for request in reversed(driver.requests):
                         foundDrug = False
+                        emptyDrug = False
                         if request.response:
                             if 'load_pkg_last_detail_presc' in request.url:
                                 # format cho dữ liệu về dạng json
@@ -324,65 +346,87 @@ def run_script(listmodels,directory,terminal_text):
                                     drug_data = json.loads(request.response.body)
                                     # đọc data
                                     drug_info = drug_data.get('data', {})
-                                    if drug_info[0].get('prescription_id') == int(pl):
-                                        foundDrug = True  
-                                        for di in drug_info:
-                                            patient_result = PatientModel()
-                                            patient_result.prescription_id = int(pl)
-                                            patient_result.code = di.get('code')
-                                            if di.get('code_atc') == "0":
-                                                patient_result.codeATC = ""
-                                            else:
-                                                patient_result.codeATC = di.get('code_atc')
-                                            patient_result.o_name= di.get('original_names')
-                                            patient_result.p_name= di.get('proprietary_name')
-                                            patient_result.morning = check_valid_used(di.get('morning'))
-                                            patient_result.noon = check_valid_used(di.get('noon'))
-                                            patient_result.afternoon = check_valid_used(di.get('afternoon'))
-                                            patient_result.evening = check_valid_used(di.get('evening'))
-                                            patient_result.date = dateKham
-                                            patient_result.quantity_num = int(di.get('quantity_num'))
-                                            patient_result.solan_ngay = di.get('solan_ngay')
-                                            patient_result.num_per_time = di.get('num_per_time')
-                                            patient_result.unit_used = get_unit(di.get('enum_unit_import_sell'))
-                                            patient_result.note = di.get('note')
-                                            if patient_result.code != '':
+                                    if len(drug_info) > 0:
+                                        if drug_info[0].get('prescription_id') == int(pl):
+                                            foundDrug = True  
+                                            idmapcurrent += 1
+                                            for di in drug_info:
+                                                patient_result = PatientModel()
+                                                patient_result.prescription_id = int(pl)
+                                                patient_result.code = di.get('code')
+                                                if di.get('code_atc') == "0":
+                                                    patient_result.codeATC = ""
+                                                else:
+                                                    patient_result.codeATC = di.get('code_atc')
+                                                patient_result.o_name= di.get('original_names')
+                                                patient_result.p_name= di.get('proprietary_name')
+                                                patient_result.morning = check_valid_used(di.get('morning'))
+                                                patient_result.noon = check_valid_used(di.get('noon'))
+                                                patient_result.afternoon = check_valid_used(di.get('afternoon'))
+                                                patient_result.evening = check_valid_used(di.get('evening'))
+                                                patient_result.date = dateKham
+                                                patient_result.quantity_num = int(di.get('quantity_num'))
+                                                patient_result.solan_ngay = di.get('solan_ngay')
+                                                patient_result.num_per_time = di.get('num_per_time')
+                                                unit = di.get('enum_unit_import_sell')
+                                                patient_result.unit_used = get_unit(unit)
+                                                if di.get('note') != None:
+                                                    patient_result.note = di.get('note')
+                                                else:
+                                                    patient_result.note = ""
                                                 demstt+=1
                                                 patient_result.stt = demstt
+                                                patient_result.mapping = idmapcurrent
                                                 patient_result_list.append(patient_result)
-                                                log_terminal(patient_result.ExportModel())
-                                            else:
-                                                errorDrug += 1
-                                                break      
-                                        break
+                                                log_terminal(patient_result.ExportModel())  
+                                            break
                                     else:
-                                        break          
-                                except:
-                                    continue     
-                        if foundDrug == True:
+                                        idmapcurrent += 1
+                                        emptyDrug = True
+                                        break         
+                                except Exception as e:
+                                    print(e)
+                                    continue    
+                            else:
+                                continue
+                        
+                        #Xét trường hợp rỗng
+                        if emptyDrug == True:
+                            errorDrug = 0
                             break
-                    if errorDrug > 0:
-                        log_terminal(f"Dữ liệu toa thuốc trống, đang cố thử lại...")
-                        if errorDrug >= 10:
-                            log_terminal(f"Quá nhiều lỗi dữ liệu trống, bỏ qua kết thúc quá trình cào tại mã bệnh nhân {cod}")
-                            app.destroy()
-                        continue  # Thử lại mã bệnh nhân hiện tại
-                    else:
-                        errorDrug = 0  # Reset biến đếm lỗi khi dữ liệu hợp lệ
-                        success = True
-                        if demstt % 100 == 0:
-                            # Ghi dữ liệu tạm thời vào file CSV
-                            with open(csv_filename, mode='a', newline='', encoding='utf-8') as file:
-                                writer = csv.DictWriter(file, fieldnames=csv_header)
-                                if file.tell() == 0:  # Nếu file rỗng, ghi header
-                                    writer.writeheader()
-                                writer.writerows([pt.to_dict() for pt in patient_result_list])
-                            breakSTT = 0
-                            driver.quit()
-                            patient_result_list.clear()
-                            log_terminal(".........................Ghi tạm vào file CSV........................................")
                         else:
-                            breakSTT = breakSTT + 1
+                            #xét trường hợp tìm thấy hay không
+                            if foundDrug == True:
+                                errorDrug = 0
+                                break
+                            else:
+                                errorDrug +=1
+                                break
+                    if emptyDrug == True:
+                        success = True
+                        log_terminal(f"Toa thuốc không kê thuốc!...........")
+                    else:
+                        if errorDrug > 0:
+                            log_terminal(f"Dữ liệu toa thuốc trống, đang cố thử lại...")
+                            if errorDrug >= 10:
+                                log_terminal(f"Quá nhiều lỗi dữ liệu trống, bỏ qua kết thúc quá trình cào tại mã bệnh nhân {cod}")
+                                app.destroy()
+                            continue  # Thử lại mã bệnh nhân hiện tại
+                        else:
+                            success = True
+                            if breakSTT % 50 == 0:
+                                # Ghi dữ liệu tạm thời vào file CSV
+                                with open(csv_filename, mode='a', newline='', encoding='utf-8') as file:
+                                    writer = csv.DictWriter(file, fieldnames=csv_header)
+                                    if file.tell() == 0:  # Nếu file rỗng, ghi header
+                                        writer.writeheader()
+                                    writer.writerows([pt.to_dict() for pt in patient_result_list])
+                                breakSTT = 1
+                                driver.quit()
+                                patient_result_list.clear()
+                                log_terminal(".........................Ghi tạm vào file CSV........................................")
+                            else:
+                                breakSTT = breakSTT + 1
                 except:
                     success = False
         # Ghi dữ liệu còn lại vào file CSV nếu có

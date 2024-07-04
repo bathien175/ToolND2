@@ -441,7 +441,7 @@ def run_script(listmodels,directory,terminal_text):
         if os.path.exists(csv_filename):
             with open(csv_filename, mode='r', encoding='utf-8-sig') as file:
                 reader = csv.reader(file)
-                start_index = sum(1 for row in reader) - 1  # Trừ đi header
+                start_index = sum(1 for row in reader) - 1 
         demstt = start_index
         breakSTT = 0
         for pt,pl in zip(patient_codes_list[start_index:],prescription_list[start_index:]):
