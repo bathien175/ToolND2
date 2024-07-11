@@ -212,6 +212,17 @@ def open_presciption_interface():
     import mainPrescription as scription  # Import file secondary.py và mở giao diện mới
     scription.run_secondary_interface(app)
 
+def open_dataExamOld_interface():
+    app.withdraw()  # Ẩn cửa sổ chính
+    import mainExamOld as examold  # Import file secondary.py và mở giao diện mới
+    examold.run_secondary_interface(app)
+
+def open_assign_interface():
+    messagebox.showerror(title="Lỗi mở giao diện!", message="Chức năng này sẽ được phát triển sau này!")
+    # app.withdraw()  # Ẩn cửa sổ chính
+    # import mainExamOld as examold  # Import file secondary.py và mở giao diện mới
+    # examold.run_secondary_interface(app)
+
 def clear_requests(driver):
     driver.requests.clear()
 
@@ -728,13 +739,17 @@ app.config(menu=menu_bar)
 # Thêm mục vào menu bar
 report_menu = Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Xuất báo cáo", menu=report_menu)
-report_menu.add_command(label="Xuất báo cáo toa khám bệnh", command=open_presciption_interface)
 report_menu.add_command(label="Xuất báo cáo đợt khám bệnh", command=open_secondary_interface)
 
 detail_menu = Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Chi tiết khám", menu=detail_menu)
 detail_menu.add_command(label="Chi tiết toa thuốc", command=open_presciption_interface)
-detail_menu.add_command(label="Chi tiết chỉ định", command=open_secondary_interface)
+detail_menu.add_command(label="Chi tiết chỉ định", command=open_assign_interface)
+
+old_data_menu = Menu(menu_bar, tearoff=0)
+menu_bar.add_cascade(label="Khai thác dữ liệu cũ", menu=old_data_menu)
+old_data_menu.add_command(label="Dữ liệu khám cũ", command=open_dataExamOld_interface)
+old_data_menu.add_command(label="Dữ liệu toa thuốc cũ", command=open_assign_interface)
 
 loadingData()
 
