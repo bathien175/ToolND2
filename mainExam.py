@@ -469,7 +469,7 @@ def run_script(listmodels,directory,terminal_text):
                             "profile.password_manager_enabled": False}
                         chrome_options.add_experimental_option("prefs", prefs)
                         chrome_options.add_argument("--headless")  # Chạy trình duyệt trong chế độ headless
-                        #chrome_options.add_argument("--disable-gpu")  # Tăng tốc độ trên các hệ điều hành không có GPU
+                        chrome_options.add_argument("--disable-gpu")  # Tăng tốc độ trên các hệ điều hành không có GPU
                         chrome_options.add_argument("--window-size=1920x1080")  # Thiết lập kích thước cửa sổ mặc định
                         driver = webdriver.Chrome(options=chrome_options)
                         url = "http://192.168.0.77/dist/#!/login"
