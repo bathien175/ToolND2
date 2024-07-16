@@ -458,7 +458,7 @@ def run_script(listmodels,directory,terminal_text):
         for pt,pl in zip(patient_codes_list[start_index:],prescription_list[start_index:]):
             success = False
             errorDrug = 0
-            errorLogWeb = 0 
+            errorLogWeb = 0     
             while not success:
                 try:
                     if breakSTT == 0 and errorDrug == 0:
