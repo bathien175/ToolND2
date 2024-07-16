@@ -168,30 +168,6 @@ class Shift:
     shift_id = 0
     shift_name = ""
 
-# class DatePicker(tk.Toplevel):
-#     def __init__(self, parent, date_entry, next_widget):
-#         super().__init__(parent)
-#         self.title("Date Picker")
-#         self.overrideredirect(True)
-#         self.grab_set()
-#         self.date_entry = date_entry
-#         self.next_widget = next_widget
-
-#         self.cal = Calendar(self, selectmode="day", year=current_date.year, month=current_date.month,
-#                             day=current_date.day)
-#         self.cal.pack()
-
-#         confirm_button = customtkinter.CTkButton(self, text="Confirm", command=self.update_date)
-#         confirm_button.pack()
-
-#     def update_date(self):
-#         selected_date_str = self.cal.get_date()
-#         selected_date = datetime.datetime.strptime(selected_date_str, "%m/%d/%y")  # Convert to datetime object
-#         self.date_entry.delete(0, tk.END)
-#         self.date_entry.insert(0, selected_date.strftime("%d/%m/%Y"))
-#         self.destroy()
-#         run_button.focus_set()
-
 #funtion
 def center_window(window, width=600, height=440):
     # Lấy kích thước màn hình
@@ -290,14 +266,6 @@ def filer_status(strStatus):
         return find_status("khac")
     
     return find_status("toave")
-
-# def pick_date(event):
-#     next_widget = event.widget.tk_focusNext()
-#     date_picker = DatePicker(app, date_entry, next_widget)
-#     x, y, _, _ = event.widget.bbox("insert")
-#     x += event.widget.winfo_rootx() - 7
-#     y += event.widget.winfo_rooty() + 30
-#     date_picker.geometry("+%d+%d" % (x, y))
 
 def validate_input():
     if pathExcel == "":
@@ -536,7 +504,7 @@ def run_script(listmodels,directory,terminal_text):
                                         patient_result.datebirth = patient_info.get('date_of_birth')
                                         patient_result.gender = find_gender(patient_info.get('gender'))
                                         patient_result.age = patient_info.get('age')
-                                        patient_result.province = patient_info.get('province')
+                                        patient_result.province = patient_info.get('province') 
                                         patient_result.district = patient_info.get('district')
                                         patient_result.ward = patient_info.get('ward_name')
                                         if patient_result.district == None:
