@@ -193,6 +193,11 @@ def open_dataExamOld_interface():
     import mainExamOld as examold  # Import file secondary.py và mở giao diện mới
     examold.run_secondary_interface(app)
 
+def open_invoice_interface():
+    app.withdraw()  # Ẩn cửa sổ chính
+    import mainInvoice as invoi  # Import file secondary.py và mở giao diện mới
+    invoi.run_secondary_interface(app)
+
 def open_assign_interface():
     messagebox.showerror(title="Lỗi mở giao diện!", message="Chức năng này sẽ được phát triển sau này!")
     # app.withdraw()  # Ẩn cửa sổ chính
@@ -667,7 +672,7 @@ def handle_file_excel():
 
         df = excel_file.parse(sheet_name)
         patient_codes = df.iloc[2:, 1]  # Đọc cột mã bệnh nhân từ dòng thứ 3
-        precriptions_id = df.iloc[2:, 3]  # Đọc cột trạng thái khám từ dòng thứ 3
+        precriptions_id = df.iloc[2:, 3]  # Đọc cột mã toa thuốc từ dòng thứ 3
 
         # Chỉ lấy những dòng là mã bệnh nhân
         valid_patient_codes = []
@@ -713,6 +718,7 @@ detail_menu = Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Chi tiết khám", menu=detail_menu)
 detail_menu.add_command(label="Chi tiết toa thuốc", command=open_presciption_interface)
 detail_menu.add_command(label="Chi tiết chỉ định", command=open_assign_interface)
+detail_menu.add_command(label="Hóa đơn và dịch vụ sử dụng", command=open_invoice_interface)
 
 old_data_menu = Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Khai thác dữ liệu cũ", menu=old_data_menu)
