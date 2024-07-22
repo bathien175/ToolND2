@@ -261,7 +261,6 @@ class InvoiceModel:
             ("Mã đợt khám", self.ticket_id),
             ("Số hóa đơn", self.so_hd),
             ("Số lưu trữ", self.so_luu_tru),
-            ("Hoàn trả", self.returned),
             ("Tổng tiền", self.total_price),
             ("Bệnh nhân trả", self.patient_price),
             ("Tiền hoàn lại", self.total_returned_amount),
@@ -447,7 +446,9 @@ def handle_file_excel_InvoiceDetail():
         try:
             # Cố gắng chuyển đổi tên sheet thành định dạng ngày
             sheet_name_trip = sheet_name.strip()
-            date = datetime.datetime.strptime(sheet_name_trip, "%d-%m-%Y").date()
+            sheet_name_date = datetime.datetime.strptime(sheet_name_trip, "%Y-%m-%d").date()
+            dateformat = sheet_name_date.strftime("%d-%m-%Y")
+            date = datetime.datetime.strptime(dateformat, "%d-%m-%Y").date()
         except ValueError:
             # Nếu không thể chuyển đổi, in ra thông báo lỗi và bỏ qua sheet này
             print(f"Tên sheet '{sheet_name}' không đúng định dạng ngày. Sheet này sẽ bị bỏ qua.")
@@ -871,6 +872,12 @@ def run_script_InvoiceDetail(listmodels,directory,terminal_text):
                                                         "'patient_info_payment')]")
                         liElement.click()
                         time.sleep(1)
+                    try:
+                        passForm = driver.find_element(By.XPATH, "//button[contains(text(), 'Đóng')]")
+                        passForm.click()
+                        time.sleep(0.1)
+                    except:
+                        time.sleep(0.1)
                     cod = str(pt)
                     patientcode = driver.find_element(By.NAME, 'patient_code_qr')
                     patientcode.clear()
@@ -882,12 +889,13 @@ def run_script_InvoiceDetail(listmodels,directory,terminal_text):
                     btnThuoc = driver.find_element(By.XPATH, "//a[contains(text(), 'Khám Ngoại Trú ')]")
                     btnThuoc.click()
                     time.sleep(0.1)
-                    btnPrescription = driver.find_element(By.XPATH, f"//a[contains(text(), '{str(il)}')]")
-                    btnPrescription.click()
+                    btnInvoice = driver.find_element(By.XPATH, f"//a[contains(text(), '{str(il)}')]")
+                    btnInvoice.click()
                     time.sleep(0.5)
                     #tìm mã toa phù hợp
                     for request in reversed(driver.requests):
-                        foundDrug = False
+                        foundInvoice = False
+                        emptyInvoice = False
                         if request.response:
                             if 'getOutPatientInvoiceDetail' in request.url:
                                 # format cho dữ liệu về dạng json
@@ -895,86 +903,128 @@ def run_script_InvoiceDetail(listmodels,directory,terminal_text):
                                     drug_data = json.loads(request.response.body)
                                     # đọc data
                                     invoice_info = drug_data.get('data', {})
-                                    for di in invoice_info:
-                                        if di.get('ticket_id') == int(tl):
-                                            foundDrug = True 
+                                    if len(invoice_info) > 0:
+                                        foundInvoice = True
+                                        for di in invoice_info: 
                                             idmapcurrent += 1
-                                            invoice_result = InvoiceModel()
-                                            invoice_result.ticket_id = int(tl)
-                                            invoice_result.invoice_code = di.get('invoice_code')
-                                            invoice_result.bhyt = di.get('bhyt')
-                                            invoice_result.created_time = di.get('created_time')
-                                            invoice_result.cashier_name = di.get('cashier_name')
-                                            invoice_result.enum_examination_type = di.get('enum_examination_type')
-                                            invoice_result.enum_invoice_type = di.get('enum_invoice_type')
-                                            invoice_result.enum_patient_type = di.get('enum_patient_type')
-                                            invoice_result.enum_payment_type = di.get('enum_payment_type')
+                                            invoice_result = InvoiceDetailModel()
+                                            invoice_result.invoice_code = il
+                                            invoice_result.pay_payment_item_id = di.get('pay_payment_item_id')
                                             invoice_result.pay_receipt_id = di.get('pay_receipt_id')
-                                            invoice_result.so_hd = di.get('so_hd')
-                                            invoice_result.so_luu_tru = di.get('so_luu_tru')
+                                            invoice_result.patient_id = di.get('patient_id')
+                                            invoice_result.cashier_id = di.get('cashier_id')
+                                            invoice_result.cashier_name = di.get('cashier_name')
+                                            invoice_result.ngay_thu = di.get('ngay_thu')
+                                            invoice_result.nguoi_thu = di.get('nguoi_thu')
+                                            if di.get('doctor_name') == None:
+                                                invoice_result.doctor_name = ""
+                                            else:
+                                                invoice_result.doctor_name = di.get('doctor_name')
+                                            invoice_result.created_time = di.get('created_time')
+                                            invoice_result.e_invoice_id = di.get('e_invoice_id')
+                                            invoice_result.enum_invoice_type = di.get('enum_invoice_type')
+                                            invoice_result.enum_item_type = di.get('enum_item_type')
+                                            invoice_result.enum_payment_type = di.get('enum_payment_type')
+                                            invoice_result.hd_date = di.get('hd_date')
+                                            invoice_result.hd_info = di.get('hd_info')
+                                            invoice_result.da_thu = di.get('da_thu')
+                                            invoice_result.deleted = di.get('deleted')
+                                            invoice_result.returned = di.get('returned')
+                                            invoice_result.refund_date = di.get('refund_date')
+                                            invoice_result.refund_amount = di.get('refund_amount')
+                                            invoice_result.refund_invoice_code = di.get('refund_invoice_code')
+                                            invoice_result.refund_pay_receipt_id = di.get('refund_pay_receipt_id')
+                                            invoice_result.new_invoice_code = di.get('new_invoice_code')
+                                            invoice_result.service_id = di.get('service_id')
+                                            invoice_result.service_name = di.get('service_name')
+                                            invoice_result.insurance_name = di.get('insurance_name')
+                                            invoice_result.item_type = di.get('item_type')
+                                            invoice_result.unit = di.get('unit')
+                                            invoice_result.unit_price = di.get('unit_price')
+                                            invoice_result.quantity = di.get('quantity')
+                                            invoice_result.total = di.get('total')
+                                            invoice_result.total_dichvu = di.get('total_dichvu')
+                                            invoice_result.total_nutrition = di.get('total_nutrition')
                                             invoice_result.total_price = di.get('total_price')
                                             invoice_result.patient_price = di.get('patient_price')
                                             invoice_result.total_returned_amount = di.get('total_returned_amount')
-                                            invoice_result.returned = di.get('returned')
-                                            invoice_result.deleted = di.get('deleted')
+                                            invoice_result.tam_ung = di.get('tam_ung')
+                                            invoice_result.phai_thu = di.get('phai_thu')
+                                            invoice_result.phai_tra = di.get('phai_tra')
+                                            invoice_result.so_hd = di.get('so_hd')
+                                            invoice_result.so_luu_tru = di.get('so_luu_tru')
+                                            invoice_result.shift = di.get('shift')
+                                            invoice_result.zone = di.get('zone')
                                             invoice_result.note = di.get('note')
                                             demstt+=1
                                             invoice_result.stt = demstt
                                             invoice_result.IDMapping = idmapcurrent
-                                            Invoice_result_list.append(invoice_result)
+                                            InvoiceDetail_result_list.append(invoice_result)
                                             log_terminal(invoice_result.ExportModel())
+                                        if foundInvoice == True:
+                                            break
                                         else:
-                                            if foundDrug == True:
-                                                #đã tìm xong r
-                                                break 
+                                            emptyInvoice = True
+                                            break
                                 except Exception as e:
                                     print(e)
                                     continue    
                             else:
                                 continue
-                        if foundDrug == True:
+                        if foundInvoice == True or emptyInvoice == True:
+                            try:
+                                passForm = driver.find_element(By.XPATH, "//button[contains(text(), 'Đóng')]")
+                                passForm.click()
+                                time.sleep(0.1)
+                            except:
+                                time.sleep(0.1)
                             break
-                    if foundDrug == False:
+                    if emptyInvoice == False:
+                        if foundInvoice == False:
+                            success = False
+                            errorDrug += 1
+                            if errorDrug >= 10:
+                                log_terminal(f"Quá nhiều lỗi dữ liệu trống, bỏ qua kết thúc quá trình cào tại mã bệnh nhân {cod}")
+                                app.destroy()
+                            else:
+                                log_terminal(f"Tìm chưa thấy chi tiết hóa đơn! Đang cố thử lại...")
+                        else:
+                            success = True
+                            if breakSTT % 100 == 0:
+                                # Ghi dữ liệu tạm thời vào file CSV
+                                with open(csv_filename, mode='a', newline='', encoding='utf-8') as file:
+                                    writer = csv.DictWriter(file, fieldnames=csv_header)
+                                    if file.tell() == 0:  # Nếu file rỗng, ghi header
+                                        writer.writeheader()
+                                    writer.writerows([pt.to_dict() for pt in InvoiceDetail_result_list])
+                                breakSTT = 1
+                                driver.quit()
+                                InvoiceDetail_result_list.clear()
+                                log_terminal(".........................Ghi tạm vào file CSV........................................")
+                            else:
+                                breakSTT = breakSTT + 1
+                    else:
                         success = False
                         errorDrug += 1
-                        if errorDrug >= 10:
-                            log_terminal(f"Quá nhiều lỗi dữ liệu trống, bỏ qua kết thúc quá trình cào tại mã bệnh nhân {cod}")
-                            app.destroy()
-                        else:
-                            log_terminal(f"Tìm chưa thấy hóa đơn! Đang cố thử lại...")
-                    else:
-                        success = True
-                        if breakSTT % 100 == 0:
-                            # Ghi dữ liệu tạm thời vào file CSV
-                            with open(csv_filename, mode='a', newline='', encoding='utf-8') as file:
-                                writer = csv.DictWriter(file, fieldnames=csv_header)
-                                if file.tell() == 0:  # Nếu file rỗng, ghi header
-                                    writer.writeheader()
-                                writer.writerows([pt.to_dict() for pt in Invoice_result_list])
-                            breakSTT = 1
-                            driver.quit()
-                            Invoice_result_list.clear()
-                            log_terminal(".........................Ghi tạm vào file CSV........................................")
-                        else:
-                            breakSTT = breakSTT + 1
+                        log_terminal(".........................Hóa đơn rỗng!!!........................................")
                 except:
                     log_terminal(f"Có lỗi xảy ra! Đang cố thử lại...")
                     success = False
         # Ghi dữ liệu còn lại vào file CSV nếu có
-        if Invoice_result_list:
+        if InvoiceDetail_result_list:
             with open(csv_filename, mode='a', newline='', encoding='utf-8') as file:
                 writer = csv.DictWriter(file, fieldnames=csv_header)
                 if file.tell() == 0:
                     writer.writeheader()
-                writer.writerows([pt.to_dict() for pt in Invoice_result_list])
+                writer.writerows([pt.to_dict() for pt in InvoiceDetail_result_list])
         # Thoát trình duyệt 
         driver.quit()
         # Chuyển dữ liệu từ file CSV sang file Excel
         try:
-            df = pd.read_csv(csv_filename, encoding='utf-8-sig')
+            df = pd.read_csv(csv_filename, encoding='utf-8-sig', dtype={'so_hd': str})
             output_filename = os.path.join(directory, f"InvoiceDetail_Data_{dateKham}.xlsx")
             with pd.ExcelWriter(output_filename, engine="openpyxl") as writer:
-                df.to_excel(writer, index=False, sheet_name='Sheet1')
+                df.to_excel(writer, index=False, sheet_name=f'{dateKham}')
 
             # Định dạng file Excel
             wb = load_workbook(output_filename)
@@ -1006,7 +1056,7 @@ def run_script_InvoiceDetail(listmodels,directory,terminal_text):
             
             wb.save(output_filename)
             os.remove(csv_filename)  # Xóa file CSV sau khi chuyển sang Excel
-            log_terminal(f"Quá trình thu thập dữ liệu hóa đơn ngày {dateKham} thành công!")
+            log_terminal(f"Quá trình thu thập dữ liệu chi tiết hóa đơn ngày {dateKham} thành công!")
         except Exception as e:
             messagebox.showerror(title="Lỗi", message=f"Lỗi quá trình tạo file excel không thành công! {e}")  
     
@@ -1084,7 +1134,7 @@ def run_secondary_interface(main_app):
 
     app.protocol("WM_DELETE_WINDOW", on_closing)
 
-    imgBG = ImageTk.PhotoImage(Image.open("resource\backgroundInvoice.jpg"))
+    imgBG = ImageTk.PhotoImage(Image.open(r"resource\backgroundInvoice.jpg"))
     l1 = customtkinter.CTkLabel(master=app, image=imgBG)
     l1.pack()
 
