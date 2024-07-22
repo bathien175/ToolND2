@@ -502,7 +502,27 @@ def run_script_Invoice(listmodels,directory,terminal_text):
         #csv file
         csv_filename = os.path.join(directory, f"Invoice_Data_{dateKham}.csv")
         # CSV file header
-        csv_header = ["STT","Mã bệnh nhân","Mã hóa đơn" ,"Bảo hiểm y tế", "Thời gian tạo", "Tên thu ngân", "Loại dịch vụ khám", "Loại hóa đơn", "Loại bệnh nhân", "Hình thức thanh toán", "pay_receipt_id", "Mã đợt khám", "Số hóa đơn", "Số lưu trữ", "Tổng tiền", "Bệnh nhân trả", "Tiền hoàn lại","Hoàn trả hóa đơn", "Xóa", "Ghi chú", "IDMapping"]
+        csv_header = ["STT",
+                      "Mã bệnh nhân",
+                      "Mã hóa đơn" ,
+                      "Bảo hiểm y tế", 
+                      "Thời gian tạo", 
+                      "Tên thu ngân", 
+                      "Loại dịch vụ khám", 
+                      "Loại hóa đơn", 
+                      "Loại bệnh nhân", 
+                      "Hình thức thanh toán", 
+                      "pay_receipt_id", 
+                      "Mã đợt khám", 
+                      "Số hóa đơn", 
+                      "Số lưu trữ", 
+                      "Tổng tiền", 
+                      "Bệnh nhân trả", 
+                      "Tiền hoàn lại",
+                      "Hoàn trả hóa đơn", 
+                      "Xóa", 
+                      "Ghi chú", 
+                      "IDMapping"]
          # Kiểm tra nếu file CSV đã tồn tại và đếm số dòng
         start_stt = 0
         start_code = ""
@@ -514,7 +534,7 @@ def run_script_Invoice(listmodels,directory,terminal_text):
                 for row in reader:
                     if len(row) > 1:
                         start_stt+=1
-                        start_code = row[22]
+                        start_code = row[20]
         if start_code != "":
             idmapcurrent = int(start_code)
         demstt = start_stt
@@ -647,10 +667,24 @@ def run_script_Invoice(listmodels,directory,terminal_text):
                         success = False
                         errorDrug += 1
                         if errorDrug >= 10:
-                            log_terminal(f"Quá nhiều lỗi dữ liệu trống, bỏ qua kết thúc quá trình cào tại mã bệnh nhân {cod}")
-                            app.destroy()
+                            log_terminal("Không có hóa đơn! Next = >>>>>...")
+                            success = True
+                            idmapcurrent+=1
+                            if breakSTT % 100 == 0:
+                                # Ghi dữ liệu tạm thời vào file CSV
+                                with open(csv_filename, mode='a', newline='', encoding='utf-8') as file:
+                                    writer = csv.DictWriter(file, fieldnames=csv_header)
+                                    if file.tell() == 0:  # Nếu file rỗng, ghi header
+                                        writer.writeheader()
+                                    writer.writerows([pt.to_dict() for pt in Invoice_result_list])
+                                breakSTT = 1
+                                driver.quit()
+                                Invoice_result_list.clear()
+                                log_terminal(".........................Ghi tạm vào file CSV........................................")
+                            else:
+                                breakSTT = breakSTT + 1
                         else:
-                            log_terminal(f"Tìm chưa thấy hóa đơn! Đang cố thử lại...")
+                            log_terminal("Tìm chưa thấy hóa đơn! Đang cố thử lại...")
                     else:
                         success = True
                         if breakSTT % 100 == 0:
@@ -667,7 +701,7 @@ def run_script_Invoice(listmodels,directory,terminal_text):
                         else:
                             breakSTT = breakSTT + 1
                 except:
-                    log_terminal(f"Có lỗi xảy ra! Đang cố thử lại...")
+                    log_terminal("Có lỗi xảy ra! Đang cố thử lại...")
                     success = False
         # Ghi dữ liệu còn lại vào file CSV nếu có
         if Invoice_result_list:
@@ -984,10 +1018,10 @@ def run_script_InvoiceDetail(listmodels,directory,terminal_text):
                             success = False
                             errorDrug += 1
                             if errorDrug >= 10:
-                                log_terminal(f"Quá nhiều lỗi dữ liệu trống, bỏ qua kết thúc quá trình cào tại mã bệnh nhân {cod}")
-                                app.destroy()
+                                messagebox.showerror(title="Error", message=f"Quá nhiều lỗi dữ liệu trống, bỏ qua kết thúc quá trình cào tại mã bệnh nhân {cod}")
+                                app.deiconify()
                             else:
-                                log_terminal(f"Tìm chưa thấy chi tiết hóa đơn! Đang cố thử lại...")
+                                log_terminal("Tìm chưa thấy chi tiết hóa đơn! Đang cố thử lại...")
                         else:
                             success = True
                             if breakSTT % 100 == 0:
@@ -1008,7 +1042,7 @@ def run_script_InvoiceDetail(listmodels,directory,terminal_text):
                         errorDrug += 1
                         log_terminal(".........................Hóa đơn rỗng!!!........................................")
                 except:
-                    log_terminal(f"Có lỗi xảy ra! Đang cố thử lại...")
+                    log_terminal("Có lỗi xảy ra! Đang cố thử lại...")
                     success = False
         # Ghi dữ liệu còn lại vào file CSV nếu có
         if InvoiceDetail_result_list:
