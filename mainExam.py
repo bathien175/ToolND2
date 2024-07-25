@@ -178,9 +178,14 @@ def center_window(window, width=600, height=440):
     y = (screen_height / 2) - (height / 2)
     window.geometry(f'{width}x{height}+{int(x)}+{int(y)}')
 
+def open_patient_interface():
+    app.withdraw()  # Ẩn cửa sổ chính
+    import mainPatientCrawl as secondary  # Import file secondary.py và mở giao diện mới
+    secondary.run_secondary_interface(app)
+
 def open_secondary_interface():
     app.withdraw()  # Ẩn cửa sổ chính
-    import mainReportExam as secondary  # Import file secondary.py và mở giao diện mới
+    import mainReportExamNew as secondary  # Import file secondary.py và mở giao diện mới
     secondary.run_secondary_interface(app)
 
 def open_presciption_interface():
@@ -192,6 +197,11 @@ def open_dataExamOld_interface():
     app.withdraw()  # Ẩn cửa sổ chính
     import mainExamOld as examold  # Import file secondary.py và mở giao diện mới
     examold.run_secondary_interface(app)
+
+def open_invoice_interface():
+    app.withdraw()  # Ẩn cửa sổ chính
+    import mainInvoice as invoi  # Import file secondary.py và mở giao diện mới
+    invoi.run_secondary_interface(app)
 
 def open_assign_interface():
     messagebox.showerror(title="Lỗi mở giao diện!", message="Chức năng này sẽ được phát triển sau này!")
@@ -394,7 +404,6 @@ def open_terminal_window():
 
     terminal_window.protocol("WM_DELETE_WINDOW", on_closing)
     return terminal_window, terminal_text
-
 
 def run_script(listmodels,directory,terminal_text):
     global pathExcel, yearCheck
@@ -671,7 +680,7 @@ def handle_file_excel():
 
         df = excel_file.parse(sheet_name)
         patient_codes = df.iloc[2:, 1]  # Đọc cột mã bệnh nhân từ dòng thứ 3
-        precriptions_id = df.iloc[2:, 3]  # Đọc cột trạng thái khám từ dòng thứ 3
+        precriptions_id = df.iloc[2:, 3]  # Đọc cột mã toa thuốc từ dòng thứ 3
 
         # Chỉ lấy những dòng là mã bệnh nhân
         valid_patient_codes = []
@@ -717,11 +726,17 @@ detail_menu = Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Chi tiết khám", menu=detail_menu)
 detail_menu.add_command(label="Chi tiết toa thuốc", command=open_presciption_interface)
 detail_menu.add_command(label="Chi tiết chỉ định", command=open_assign_interface)
+detail_menu.add_command(label="Hóa đơn và dịch vụ sử dụng", command=open_invoice_interface)
 
 old_data_menu = Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Khai thác dữ liệu cũ", menu=old_data_menu)
 old_data_menu.add_command(label="Dữ liệu khám cũ", command=open_dataExamOld_interface)
 old_data_menu.add_command(label="Dữ liệu toa thuốc cũ", command=open_assign_interface)
+
+new_data_menu = Menu(menu_bar, tearoff=0)
+menu_bar.add_cascade(label="Cào dữ liệu mẫu Postgres", menu=new_data_menu)
+new_data_menu.add_command(label="Dữ liệu bệnh nhân", command=open_patient_interface)
+new_data_menu.add_command(label="Dữ liệu hành chính", command=open_assign_interface)
 
 loadingData()
 
@@ -746,5 +761,6 @@ run_button.place(x=170, y=200)
 
 def on_closing():
     app.quit()
+
 app.protocol("WM_DELETE_WINDOW", on_closing)
 app.mainloop()

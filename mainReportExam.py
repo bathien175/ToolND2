@@ -41,6 +41,7 @@ class PatientModel:
     status = ""
     prescription = ""
     doctor = ""
+    ticket = ""
 
     def to_dict(self):
         return {
@@ -50,6 +51,7 @@ class PatientModel:
             "Mã toa thuốc": self.prescription,
             "Tình trạng": self.status,
             "Bác sĩ": self.doctor,
+            "Mã đợt khám": self.ticket
         }
 
     def printModel(self):
@@ -69,7 +71,8 @@ class PatientModel:
             ("Ngày khám:", self.dateExam),
             ("Mã toa thuốc:", self.prescription),
             ("Tình trạng:", self.status),
-            ("Bác sĩ:", self.doctor)
+            ("Bác sĩ:", self.doctor),
+            ("Mã đợt khám:", self.ticket)
         ]
 
         # Đảm bảo tất cả các giá trị không phải là None
@@ -246,7 +249,7 @@ def format_sheet(ws, date_str):
     date_cell.alignment = Alignment(horizontal="center")
 
     # Dòng header các cột
-    headers = ["STT", "Mã bệnh nhân", "Ngày khám", "Mã toa thuốc", "Tình trạng", "Bác sĩ"]
+    headers = ["STT", "Mã bệnh nhân", "Ngày khám", "Mã toa thuốc", "Tình trạng", "Bác sĩ", "Mã đợt khám"]
     header_fill = PatternFill(start_color="90EE90", end_color="90EE90", fill_type="solid")
 
     for col_num, header in enumerate(headers, 1):
@@ -532,6 +535,7 @@ def run_Script(directory,terminal_text):
                             patientmd.status = find_status(pi.get('status'))
                             patientmd.prescription = pi.get('prescription_id')
                             patientmd.doctor = pi.get('doctor_name')
+                            patientmd.ticket = pi.get('ticket_id')
                             listPatient.append(patientmd)
                             log_terminal(patientmd.ExportModel())
                             demstt+=1
