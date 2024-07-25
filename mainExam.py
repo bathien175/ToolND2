@@ -434,7 +434,7 @@ def run_script(listmodels,directory,terminal_text):
                         chrome_options = webdriver.ChromeOptions()
                         chrome_options.add_experimental_option("prefs", {
                             "download.default_directory": directory,
-                            "profile.default_content_setting_values.autom   atic_downloads": 1,
+                            "profile.default_content_setting_values.automatic_downloads": 1,
                             "download.prompt_for_download": False,
                             "profile.default_content_settings.popups": 0,
                             "safebrowsing.enabled": "false",
@@ -450,6 +450,10 @@ def run_script(listmodels,directory,terminal_text):
                         chrome_options.add_argument("--headless")  # Chạy trình duyệt trong chế độ headless
                         chrome_options.add_argument("--disable-gpu")  # Tăng tốc độ trên các hệ điều hành không có GPU
                         chrome_options.add_argument("--window-size=1920x1080")  # Thiết lập kích thước cửa sổ mặc định
+                        chrome_options.add_argument("--no-sandbox")
+                        chrome_options.add_argument("--disable-extensions")
+                        chrome_options.add_argument("--disable-infobars")
+                        chrome_options.add_argument("--blink-settings=imagesEnabled=false")
                         driver = webdriver.Chrome(options=chrome_options)
                         url = "http://192.168.0.77/dist/#!/login"
                         try:
