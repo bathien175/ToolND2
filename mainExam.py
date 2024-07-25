@@ -178,9 +178,14 @@ def center_window(window, width=600, height=440):
     y = (screen_height / 2) - (height / 2)
     window.geometry(f'{width}x{height}+{int(x)}+{int(y)}')
 
+def open_patient_interface():
+    app.withdraw()  # Ẩn cửa sổ chính
+    import mainPatientCrawl as secondary  # Import file secondary.py và mở giao diện mới
+    secondary.run_secondary_interface(app)
+
 def open_secondary_interface():
     app.withdraw()  # Ẩn cửa sổ chính
-    import mainReportExam as secondary  # Import file secondary.py và mở giao diện mới
+    import mainReportExamNew as secondary  # Import file secondary.py và mở giao diện mới
     secondary.run_secondary_interface(app)
 
 def open_presciption_interface():
@@ -399,7 +404,6 @@ def open_terminal_window():
 
     terminal_window.protocol("WM_DELETE_WINDOW", on_closing)
     return terminal_window, terminal_text
-
 
 def run_script(listmodels,directory,terminal_text):
     global pathExcel, yearCheck
@@ -725,6 +729,11 @@ menu_bar.add_cascade(label="Khai thác dữ liệu cũ", menu=old_data_menu)
 old_data_menu.add_command(label="Dữ liệu khám cũ", command=open_dataExamOld_interface)
 old_data_menu.add_command(label="Dữ liệu toa thuốc cũ", command=open_assign_interface)
 
+new_data_menu = Menu(menu_bar, tearoff=0)
+menu_bar.add_cascade(label="Cào dữ liệu mẫu Postgres", menu=new_data_menu)
+new_data_menu.add_command(label="Dữ liệu bệnh nhân", command=open_patient_interface)
+new_data_menu.add_command(label="Dữ liệu hành chính", command=open_assign_interface)
+
 loadingData()
 
 imgBG = ImageTk.PhotoImage(Image.open("resource\BG.png"))
@@ -748,5 +757,6 @@ run_button.place(x=170, y=200)
 
 def on_closing():
     app.quit()
+
 app.protocol("WM_DELETE_WINDOW", on_closing)
 app.mainloop()
