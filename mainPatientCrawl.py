@@ -14,6 +14,8 @@ import requests
 import math
 import phpserialize
 import psycopg2
+import threading
+import sys
 #global
 customtkinter.set_appearance_mode("Light")
 customtkinter.set_default_color_theme("green")
@@ -31,6 +33,7 @@ def validate_textSearch():
         return False
 
 def open_terminal_window():
+    global terminal_window
     terminal_window = tk.Toplevel(app)
     terminal_window.title("Màn hình chạy dữ liệu")
     terminal_window.attributes("-fullscreen", True)
@@ -49,6 +52,11 @@ def open_terminal_window():
 
     terminal_window.protocol("WM_DELETE_WINDOW", on_closing)
     return terminal_window, terminal_text
+
+def sanitize_date(date_string):
+    if date_string == "0000-00-00 00:00:00" or not date_string:
+        return None
+    return date_string
 
 def start_script_thread():
     global script_thread  # Khai báo biến toàn cục
@@ -146,7 +154,27 @@ def run_Script(terminal_text):
         "page": 1,
         "patient_code": txt_search.get(),
     }
-    all_data_fetch = fetch_all_pages(urlAPI, headers, payload)
+    log_terminal(".........................Đang tiến hành thu thập! Vui lòng chờ...........................")
+    # Biến global để kiểm soát animation
+    loading = True
+    def loading_animation():
+        chars = "/—\\|"
+        i = 0
+        while loading:
+            log_terminal('\r' + 'Vui lòng đợi quá trình tải dữ liệu đang được diễn ra... ' + chars[i % len(chars)])
+            time.sleep(0.1)
+            i += 1
+    # Thread cho animation
+    loading_thread = threading.Thread(target=loading_animation)
+    loading_thread.daemon = True  # Đảm bảo thread sẽ kết thúc khi chương trình chính kết thúc
+    # Bắt đầu animation
+    loading_thread.start()
+    try:
+        all_data_fetch = fetch_all_pages(urlAPI, headers, payload)
+    finally:
+        loading = False
+        loading_thread.join()
+    log_terminal(".........................Đã hoàn tất thu thập danh sách..................................")
     conn_params = sour.ConnectStr
     conn = psycopg2.connect(**conn_params)
     cur = conn.cursor()
@@ -160,6 +188,8 @@ def run_Script(terminal_text):
         mod.backup_name = item.get('backup_name')
         mod.gender = item.get('gender')
         mod.date_of_birth = item.get('date_of_birth')
+        if mod.date_of_birth == "0000-00-00":
+            mod.date_of_birth = None
         mod.phone_number = item.get('phone_number')
         mod.full_address = item.get('full_address')
         mod.career_en_name = item.get('career_en_name')
@@ -168,18 +198,30 @@ def run_Script(terminal_text):
         mod.vi_nationality = item.get('vi_nationality')
         mod.en_nationality = item.get('en_nationality')
         mod.blood_group = item.get('blood_group')
-        mod.blood_result_time = item.get('blood_result_time')
+        mod.blood_result_time = sanitize_date(item.get('blood_result_time'))
         mod.blood_rh = item.get('blood_rh')
         mod.qr_code_bhyt = item.get('qr_code_bhyt')
         mod.qr_code_cccd_chip = item.get('qr_code_cccd_chip')
-        mod.created_date = item.get('created_date')
-        mod.last_exam = item.get('last_exam')
-        serialized_data = item.get('relative_name')
-        unserialized_data = phpserialize.loads(serialized_data.encode(), decode_strings=True)
-        mod.father_name = unserialized_data['father_name']
-        mod.father_phone = unserialized_data['father_phone']
-        mod.mother_name = unserialized_data['mother_name']
-        mod.mother_phone = unserialized_data['mother_phone']
+        mod.created_date = sanitize_date(item.get('created_date'))
+        mod.last_exam = sanitize_date(item.get('last_exam'))
+        if item.get('relative_name') == '' or not item.get('relative_name'):
+            mod.father_name = ""
+            mod.father_phone = ""
+            mod.mother_name = ""
+            mod.mother_phone = ""
+        else:
+            serialized_data = item.get('relative_name')
+            try:
+                unserialized_data =  phpserialize.loads(serialized_data.encode('utf-8'), decode_strings=True)
+                mod.father_name = unserialized_data['father_name']
+                mod.father_phone = unserialized_data['father_phone']
+                mod.mother_name = unserialized_data['mother_name']
+                mod.mother_phone = unserialized_data['mother_phone']
+            except Exception as e:
+                mod.father_name = ""
+                mod.father_phone = ""
+                mod.mother_name = ""
+                mod.mother_phone = "" 
         try:
             cur.execute(
                 "CALL public.insert_patient(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
@@ -215,13 +257,14 @@ def run_Script(terminal_text):
             conn.commit()
             log_terminal("Chèn thành công bệnh nhân : "+ mod.patient_code)
         except (Exception, psycopg2.Error) as error:
-            print("Lỗi khi chèn dữ liệu vào PostgreSQL:", error)
+            log_terminal("Lỗi khi chèn dữ liệu vào PostgreSQL:", error)
 
     if conn:
         cur.close()
         conn.close()
-        log_terminal("Hoàn thành cào dữ liệu bệnh nhân! Kết nối PostgreSQL đã đóng!.....")
-
+        messagebox.showinfo(title="Thành công!",message="Hoàn thành cào dữ liệu bệnh nhân! Kết nối PostgreSQL đã đóng!.....")
+    
+    sour._destroySelenium_()
     terminal_window.destroy()
     app.deiconify()
 
