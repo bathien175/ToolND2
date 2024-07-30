@@ -272,7 +272,7 @@ def run_Script(terminal_text):
 def run_secondary_interface(main_app):
     global run_button, txt_search, app
     app = customtkinter.CTkToplevel(main_app)
-    app.title("Lấy báo cáo sổ khám bệnh")
+    app.title("Lấy dữ liệu bệnh nhân")
     center_window(app)
     icon_path = os.path.abspath("resource\crawlLogo.ico")
     app.iconbitmap(icon_path)

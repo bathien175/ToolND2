@@ -14,6 +14,55 @@ def CalculateModel(headers):
     s += "+" + "-" * max_key_length + "+" + "-" * max_value_length + "+\n"
     return s
 
+class CareerModel:
+    career_id = 0
+    code = ""
+    disable = 0
+    en_name = ""
+    vi_name = ""
+    ma_nghenghiep_bhyt = ""
+
+class CountryModel:
+    country_id = 0
+    disable = 0
+    en_name = ""
+    vi_name = ""
+    
+class NationalityModel:
+    nationality_id = 0
+    disable = 0
+    en_name = ""
+    vi_name = ""
+    ma_quoc_tich_bhyt = ""
+
+class ProvinceModel:
+    province_id = 0
+    code = ""
+    disabled = 0
+    en_name = ""
+    vi_name = ""
+    ma_tinh = ""
+
+class DistrictModel:
+    district_id = 0
+    province_id = 0
+    ma_quan = ""
+    code = ""
+    disabled = 0
+    en_name = ""
+    vi_name = ""
+    ma_quan_bhyt = ""
+
+class WardModel:
+    ward_id = 0
+    district_id = 0
+    disabled = 0
+    en_name = ""
+    vi_name = ""
+    ma_phuong = ""
+    ma_phuong_bhyt = ""
+    auto_suggest_code = ""
+
 class PatientModel:
     stt = 0
     person_id = 0
