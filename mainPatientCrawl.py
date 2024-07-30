@@ -95,35 +95,58 @@ def center_window(window, width=600, height=440):
 def fetch_all_pages(base_url, headers, payload):
     all_data = []
     current_page = 1
-
+    headersFix = headers
     while True:
         payloads = payload.copy()
         payloads['page'] = current_page
 
-        response = requests.get(base_url, headers=headers, json=payloads)
+        response = requests.get(base_url, headers=headersFix, json=payloads)
 
         if response.status_code == 200:
-            dataf = response.json()
-            data = dataf['data']
-            data_list = data['data_list']
-            
-            # Nếu data_list rỗng, có nghĩa là đã hết dữ liệu
-            if not data_list:
-                print(f"Đã đạt đến cuối danh sách ở trang {current_page - 1}")
+            try:
+                dataf = response.json()
+                data = dataf['data']
+                data_list = data['data_list']
+                
+                # Nếu data_list rỗng, có nghĩa là đã hết dữ liệu
+                if not data_list:
+                    print(f"Đã đạt đến cuối danh sách ở trang {current_page - 1}")
+                    break
+                
+                all_data.extend(data_list)
+                
+                paging = data['paging']
+                total_record = paging['total_record']
+                row_per_page = paging['row_per_page']
+                
+                print(f"Đã lấy trang {current_page}. Tổng số bản ghi hiện tại: {total_record}")
+                
+                current_page += 1
+            except:
                 break
-            
-            all_data.extend(data_list)
-            
-            paging = data['paging']
-            total_record = paging['total_record']
-            row_per_page = paging['row_per_page']
-            
-            print(f"Đã lấy trang {current_page}. Tổng số bản ghi hiện tại: {total_record}")
-            
-            current_page += 1
         else:
-            print(f"Lỗi khi lấy trang {current_page}: {response.status_code}")
-            break
+            if response.status_code == 10000:
+                print("Lỗi out session đang cố kết nối lại...")
+                bTry = False
+                errorChrome = 1
+                while bTry == False:
+                    bTry = sour._initSelenium_()
+                    if bTry == False:
+                        if errorChrome >= 10:
+                            app.destroy() 
+                        else:
+                            errorChrome += 1
+                time.sleep(3)
+                # login
+                sour._login_("quyen.ngoq", "74777477")
+                # ấn nút login
+                time.sleep(0.5)
+                headersFix['Userkey'] = sour.secretKey
+                headersFix['Authorization'] = sour.secretKey
+                print("Kết nối thành công...")      
+            else:
+                print(f"Lỗi khi lấy trang {current_page}: {response.status_code}")
+                break
 
     print(f"Tổng số bản ghi đã lấy: {len(all_data)}")
     return all_data
@@ -285,7 +308,7 @@ def run_Script(terminal_text):
 def run_secondary_interface(main_app):
     global run_button, txt_search, app
     app = customtkinter.CTkToplevel(main_app)
-    app.title("Lấy báo cáo sổ khám bệnh")
+    app.title("Lấy dữ liệu bệnh nhân")
     center_window(app)
     icon_path = os.path.abspath("resource\crawlLogo.ico")
     app.iconbitmap(icon_path)
