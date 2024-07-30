@@ -178,6 +178,11 @@ def center_window(window, width=600, height=440):
     y = (screen_height / 2) - (height / 2)
     window.geometry(f'{width}x{height}+{int(x)}+{int(y)}')
 
+def open_administrative_interface():
+    app.withdraw()  # Ẩn cửa sổ chính
+    import mainAdministrativeCrawl as secondary  # Import file secondary.py và mở giao diện mới
+    secondary.run_secondary_interface(app)
+
 def open_patient_interface():
     app.withdraw()  # Ẩn cửa sổ chính
     import mainPatientCrawl as secondary  # Import file secondary.py và mở giao diện mới
@@ -736,7 +741,7 @@ old_data_menu.add_command(label="Dữ liệu toa thuốc cũ", command=open_assi
 new_data_menu = Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Cào dữ liệu mẫu Postgres", menu=new_data_menu)
 new_data_menu.add_command(label="Dữ liệu bệnh nhân", command=open_patient_interface)
-new_data_menu.add_command(label="Dữ liệu hành chính", command=open_assign_interface)
+new_data_menu.add_command(label="Dữ liệu hành chính", command=open_administrative_interface)
 
 loadingData()
 
