@@ -31,6 +31,21 @@ def validate_textSearch():
         return True
     else:
         return False
+    
+def start_test():
+    conn_params = sour.ConnectStr
+    conn = psycopg2.connect(**conn_params)
+    cur = conn.cursor()
+    sqlstring = "SELECT * FROM patient"
+    cur.execute(sqlstring)
+    data = cur.fetchall()
+    if len(data) != 0:
+        for patient in data:
+            print(patient)
+    
+    if conn:
+        cur.close()
+        conn.close()
 
 def open_terminal_window():
     global terminal_window
@@ -80,10 +95,8 @@ def center_window(window, width=600, height=440):
 def fetch_all_pages(base_url, headers, payload):
     all_data = []
     current_page = 1
-    total_pages = None
 
-    while total_pages is None or current_page <= total_pages:
-        # Cập nhật tham số page cho mỗi yêu cầu
+    while True:
         payloads = payload.copy()
         payloads['page'] = current_page
 
@@ -91,28 +104,28 @@ def fetch_all_pages(base_url, headers, payload):
 
         if response.status_code == 200:
             dataf = response.json()
-            data = dataf['data'] #đây là dữ liệu tổng gồm có list dữ liệu và thông tin paging
-            # Thêm dữ liệu từ trang hiện tại vào kết quả
-            all_data.extend(data['data_list']) # chỗ này là lấy dữ liệu ra
+            data = dataf['data']
+            data_list = data['data_list']
             
-            # Cập nhật thông tin phân trang
-            paging = data['paging'] # lấy thông tin page
-            current_page = paging['current_page']
-            row_per_page = paging['row_per_page']
+            # Nếu data_list rỗng, có nghĩa là đã hết dữ liệu
+            if not data_list:
+                print(f"Đã đạt đến cuối danh sách ở trang {current_page - 1}")
+                break
+            
+            all_data.extend(data_list)
+            
+            paging = data['paging']
             total_record = paging['total_record']
+            row_per_page = paging['row_per_page']
             
-            # Tính tổng số trang nếu chưa có
-            if total_pages is None:
-                total_pages = math.ceil(total_record / row_per_page)
-
-            print(f"Đã lấy trang {current_page}/{total_pages}")
+            print(f"Đã lấy trang {current_page}. Tổng số bản ghi hiện tại: {total_record}")
             
-            # Tăng số trang cho lần lặp tiếp theo
             current_page += 1
         else:
             print(f"Lỗi khi lấy trang {current_page}: {response.status_code}")
             break
 
+    print(f"Tổng số bản ghi đã lấy: {len(all_data)}")
     return all_data
 
 def run_Script(terminal_text):
@@ -295,6 +308,9 @@ def run_secondary_interface(main_app):
 
     txt_search = customtkinter.CTkEntry(master=frame, placeholder_text="VD: 794...", font=('Century Gothic', 13), width=280)
     txt_search.place(x=20, y=100)
+
+    run_button = customtkinter.CTkButton(master=frame, command=start_test,text="test du lieu", font=('Tahoma', 13), fg_color="#005369", hover_color="#008097")
+    run_button.place(x=20, y=200)
 
     run_button = customtkinter.CTkButton(master=frame, command=start_script_thread,text="Thực thi", font=('Tahoma', 13), fg_color="#005369", hover_color="#008097")
     run_button.place(x=160, y=200)
