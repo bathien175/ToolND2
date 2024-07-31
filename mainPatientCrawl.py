@@ -93,105 +93,99 @@ def center_window(window, width=600, height=440):
     window.geometry(f'{width}x{height}+{int(x)}+{int(y)}')
 
 def fetch_all_pages(base_url, headers, payload):
-    all_data = []
-    current_page = 1
-
+    # Tên file để lưu trạng thái
+    state_file = 'search_state.json'
+    
+    # Đọc trạng thái từ file nếu tồn tại
+    if os.path.exists(state_file):
+        with open(state_file, 'r') as f:
+            search_state = json.load(f)
+    else:
+        search_state = {}
+    
+    # Lấy textsearch từ payload
+    textsearch = payload.get('patient_code', '')
+    
+    # Lấy trang hiện tại từ trạng thái đã lưu hoặc bắt đầu từ trang 1
+    current_page = search_state.get(textsearch, 1)
+    
+    headersFix = headers
+    demloi = 1
+    
     while True:
         payloads = payload.copy()
         payloads['page'] = current_page
 
-        response = requests.get(base_url, headers=headers, json=payloads)
+        response = requests.get(base_url, headers=headersFix, json=payloads)
 
         if response.status_code == 200:
-            dataf = response.json()
-            data = dataf['data']
-            data_list = data['data_list']
-            
-            # Nếu data_list rỗng, có nghĩa là đã hết dữ liệu
-            if not data_list:
-                print(f"Đã đạt đến cuối danh sách ở trang {current_page - 1}")
-                break
-            
-            all_data.extend(data_list)
-            
-            paging = data['paging']
-            total_record = paging['total_record']
-            row_per_page = paging['row_per_page']
-            
-            print(f"Đã lấy trang {current_page}. Tổng số bản ghi hiện tại: {total_record}")
-            
-            current_page += 1
+            try:
+                dataf = response.json()
+                data = dataf['data']
+                data_list = data['data_list']
+                
+                if not data_list:
+                    print(f"Đã đạt đến cuối danh sách ở trang {current_page - 1}")
+                    # Xóa trạng thái khi hoàn thành
+                    if textsearch in search_state:
+                        del search_state[textsearch]
+                    break
+                
+                add_data_to_database(data_list)
+                
+                paging = data['paging']
+                total_record = paging['total_record']
+                row_per_page = paging['row_per_page']
+                
+                print(f"Đã lấy trang {current_page}. Tổng số bản ghi hiện tại: {total_record}")
+                
+                current_page += 1
+                demloi = 1
+                
+                # Lưu trạng thái hiện tại
+                search_state[textsearch] = current_page
+                with open(state_file, 'w') as f:
+                    json.dump(search_state, f)
+                
+            except:
+                print(f"Lỗi khi lấy trang {current_page}: {response.status_code}")
+                demloi +=1
         else:
-            print(f"Lỗi khi lấy trang {current_page}: {response.status_code}")
+            if response.status_code == 10000:
+                print("Lỗi out session đang cố kết nối lại...")
+                bTry = False
+                errorChrome = 1
+                while bTry == False:
+                    bTry = sour._initSelenium_()
+                    if bTry == False:
+                        if errorChrome >= 10:
+                            app.destroy() 
+                        else:
+                            errorChrome += 1
+                time.sleep(3)
+                # login
+                sour._login_("quyen.ngoq", "74777477")
+                # ấn nút login
+                time.sleep(0.5)
+                headersFix['Userkey'] = sour.secretKey
+                headersFix['Authorization'] = sour.secretKey
+                print("Kết nối thành công...")  
+                demloi = 1    
+            else:
+                print(f"Lỗi khi lấy trang {current_page}: {response.status_code}")
+                demloi +=1
+
+        if demloi == 10:
+            print('Lỗi quá nhiều lần! Đóng quá trình lấy trang!')
             break
 
-    print(f"Tổng số bản ghi đã lấy: {len(all_data)}")
-    return all_data
+    print(f"Hoàn tất lấy dữ liệu thành công!...")
 
-def run_Script(terminal_text):
-    global app, txt_search, terminal_window
-    # Hàm để hiển thị thông tin lên terminal
-    def log_terminal(message):
-        terminal_text.insert(tk.END,message + "\n")
-        terminal_text.see(tk.END)  # Scroll to the end
-        terminal_text.update_idletasks()
-    log_terminal(".........................Khởi động chương trình..........................................")
-    log_terminal(".........................Khởi động Chrome................................................")
-    #chrome settings
-    bTry = False
-    errorChrome = 1
-    while bTry == False:
-        bTry = sour._initSelenium_()
-        if bTry == False:
-            if errorChrome >= 10:
-                log_terminal("..............Khởi động Chrome thất bại quá nhiều! Tắt chương trình....................")
-                app.destroy() 
-            else:
-                errorChrome += 1
-                log_terminal(".........................Khởi động Chrome thất bại! Đang thử lại.......................")
-        
-    time.sleep(3)
-    log_terminal(".........................Duyệt WEBSITE thành công........................................")
-    # login
-    sour._login_("quyen.ngoq", "74777477")
-    # ấn nút login
-    time.sleep(0.5)
-    log_terminal(".........................Sao chép userkey thành công.....................................")
-    headers = {
-                    "Appkey": sour.Appkey,
-                    "Userkey": sour.secretKey,
-                    "Authorization": sour.secretKey,
-                    "Content-Type": sour.contentType
-                }
-    payload = {
-        "page": 1,
-        "patient_code": txt_search.get(),
-    }
-    log_terminal(".........................Đang tiến hành thu thập! Vui lòng chờ...........................")
-    # Biến global để kiểm soát animation
-    loading = True
-    def loading_animation():
-        chars = "/—\\|"
-        i = 0
-        while loading:
-            log_terminal('\r' + 'Vui lòng đợi quá trình tải dữ liệu đang được diễn ra... ' + chars[i % len(chars)])
-            time.sleep(0.1)
-            i += 1
-    # Thread cho animation
-    loading_thread = threading.Thread(target=loading_animation)
-    loading_thread.daemon = True  # Đảm bảo thread sẽ kết thúc khi chương trình chính kết thúc
-    # Bắt đầu animation
-    loading_thread.start()
-    try:
-        all_data_fetch = fetch_all_pages(urlAPI, headers, payload)
-    finally:
-        loading = False
-        loading_thread.join()
-    log_terminal(".........................Đã hoàn tất thu thập danh sách..................................")
+def add_data_to_database(datalist):
     conn_params = sour.ConnectStr
     conn = psycopg2.connect(**conn_params)
     cur = conn.cursor()
-    for item in all_data_fetch:
+    for item in datalist:
         mod = model.PatientModel()
         mod.person_id = item.get('person_id')
         mod.patient_code = item.get('patient_code')
@@ -268,15 +262,74 @@ def run_Script(terminal_text):
                 )
             )
             conn.commit()
-            log_terminal("Chèn thành công bệnh nhân : "+ mod.patient_code)
+            print("Chèn thành công bệnh nhân : "+ mod.patient_code)
         except (Exception, psycopg2.Error) as error:
-            log_terminal("Lỗi khi chèn dữ liệu vào PostgreSQL:", error)
+            print("Lỗi khi chèn dữ liệu vào PostgreSQL:", error)
 
     if conn:
         cur.close()
         conn.close()
-        messagebox.showinfo(title="Thành công!",message="Hoàn thành cào dữ liệu bệnh nhân! Kết nối PostgreSQL đã đóng!.....")
-    
+
+def run_Script(terminal_text):
+    global app, txt_search, terminal_window
+    # Hàm để hiển thị thông tin lên terminal
+    def log_terminal(message):
+        terminal_text.insert(tk.END,message + "\n")
+        terminal_text.see(tk.END)  # Scroll to the end
+        terminal_text.update_idletasks()
+    log_terminal(".........................Khởi động chương trình..........................................")
+    log_terminal(".........................Khởi động Chrome................................................")
+    #chrome settings
+    bTry = False
+    errorChrome = 1
+    while bTry == False:
+        bTry = sour._initSelenium_()
+        if bTry == False:
+            if errorChrome >= 10:
+                log_terminal("..............Khởi động Chrome thất bại quá nhiều! Tắt chương trình....................")
+                app.destroy() 
+            else:
+                errorChrome += 1
+                log_terminal(".........................Khởi động Chrome thất bại! Đang thử lại.......................")
+        
+    time.sleep(3)
+    log_terminal(".........................Duyệt WEBSITE thành công........................................")
+    # login
+    sour._login_("quyen.ngoq", "74777477")
+    # ấn nút login
+    time.sleep(0.5)
+    log_terminal(".........................Sao chép userkey thành công.....................................")
+    headers = {
+                    "Appkey": sour.Appkey,
+                    "Userkey": sour.secretKey,
+                    "Authorization": sour.secretKey,
+                    "Content-Type": sour.contentType
+                }
+    payload = {
+        "page": 1,
+        "patient_code": txt_search.get(),
+    }
+    log_terminal(".........................Đang tiến hành thu thập! Vui lòng chờ...........................")
+    # Biến global để kiểm soát animation
+    loading = True
+    def loading_animation():
+        chars = "/—\\|"
+        i = 0
+        while loading:
+            log_terminal('\r' + 'Vui lòng đợi quá trình tải dữ liệu đang được diễn ra... ' + chars[i % len(chars)])
+            time.sleep(0.1)
+            i += 1
+    # Thread cho animation
+    loading_thread = threading.Thread(target=loading_animation)
+    loading_thread.daemon = True  # Đảm bảo thread sẽ kết thúc khi chương trình chính kết thúc
+    # Bắt đầu animation
+    loading_thread.start()
+    try:
+        fetch_all_pages(urlAPI, headers, payload)
+    finally:
+        loading = False
+        loading_thread.join()
+    messagebox.showinfo(title="Thành công!",message="Hoàn thành cào dữ liệu bệnh nhân! Kết nối PostgreSQL đã đóng!.....")
     sour._destroySelenium_()
     terminal_window.destroy()
     app.deiconify()
