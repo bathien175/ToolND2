@@ -123,6 +123,7 @@ def fetch_all_pages(base_url, headers, payload):
                 
                 current_page += 1
             except:
+                print(f"Lỗi khi lấy trang {current_page}: {response.status_code}")
                 break
         else:
             if response.status_code == 10000:

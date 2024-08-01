@@ -27,7 +27,7 @@ urlQuocGia = "http://192.168.0.77/api/nation/find"
 urlQuocTich = "http://192.168.0.77/api/nationality/find"
 urlTinhThanh = "http://192.168.0.77/api/province/find"
 urlQuanHuyen = "http://192.168.0.77/api/district/getDistrictByProvinceId/"
-urlXaPhuong = "http://192.168.0.77/api/district/get_district/"
+urlXaPhuong = "http://192.168.0.77/api/ward/getWardByDistrictId/"
 terminal_window = Any
 int_selection = tk.StringVar()
 
@@ -112,10 +112,16 @@ def fetch_data_from_api(int_selec, header):
             try:
                 cur.execute("select * from Province")
                 listdata = cur.fetchall()
-                list_data_fetch = []
                 if len(listdata) > 0:
                     for item in listdata:
-                        list_data_fetch.append(item[1])
+                        code_province = item[1]
+                        fullUrl = urlQuanHuyen + str(code_province)
+                        response = requests.get(fullUrl, headers=header)
+                        if response.status_code == 200:
+                            dataf = response.json()
+                            all_data.extend(dataf['data'])
+                        else:
+                            print(f"Lỗi khi lấy trang dữ liệu...")
             except:
                 print("Lỗi xảy ra trong quá trình truy cập CSDL...")
             finally:
@@ -129,10 +135,16 @@ def fetch_data_from_api(int_selec, header):
             try:
                 cur.execute("select * from District")
                 listdata = cur.fetchall()
-                list_data_fetch = []
                 if len(listdata) > 0:
                     for item in listdata:
-                        list_data_fetch.append(item[1])
+                        code_district = item[1]
+                        fullUrl = urlXaPhuong + str(code_district)
+                        response = requests.get(fullUrl, headers=header)
+                        if response.status_code == 200:
+                            dataf = response.json()
+                            all_data.extend(dataf['data'])
+                        else:
+                            print(f"Lỗi khi lấy trang dữ liệu...")
             except:
                 print("Lỗi xảy ra trong quá trình truy cập CSDL...")
             finally:
@@ -294,33 +306,34 @@ def run_Script(terminal_text):
                 except (Exception, psycopg2.Error) as error:
                     log_terminal("Lỗi khi chèn dữ liệu vào PostgreSQL:", error)
             case "Quận Huyện":
-                mod = model.DistrictModel()
-                mod.district_id = item.get('district_id')
-                mod.province_id = item.get('province_id')
-                mod.ma_quan = item.get('ma_quan')
-                mod.code = item.get('code')
-                mod.disabled = item.get('disabled')
-                mod.en_name = item.get('en_name')
-                mod.vi_name = item.get('vi_name')
-                mod.ma_quan_bhyt = item.get('ma_quan_bhyt')
-                try:
-                    cur.execute(
-                        "CALL public.insert_district(%s, %s, %s, %s, %s, %s, %s, %s)",
-                        (
-                            mod.district_id,
-                            mod.province_id,
-                            mod.ma_quan,
-                            mod.code,
-                            mod.disabled,
-                            mod.en_name,
-                            mod.vi_name,
-                            mod.ma_quan_bhyt
+                if len(item) != 3:
+                    mod = model.DistrictModel()
+                    mod.district_id = item.get('district_id')
+                    mod.province_id = item.get('province_id')
+                    mod.ma_quan = item.get('ma_quan')
+                    mod.code = item.get('code')
+                    mod.disabled = item.get('disabled')
+                    mod.en_name = item.get('en_name')
+                    mod.vi_name = item.get('vi_name')
+                    mod.ma_quan_bhyt = item.get('ma_quan_bhyt')
+                    try:
+                        cur.execute(
+                            "CALL public.insert_district(%s, %s, %s, %s, %s, %s, %s, %s)",
+                            (
+                                mod.district_id,
+                                mod.province_id,
+                                mod.ma_quan,
+                                mod.code,
+                                mod.disabled,
+                                mod.en_name,
+                                mod.vi_name,
+                                mod.ma_quan_bhyt
+                            )
                         )
-                    )
-                    conn.commit()
-                    log_terminal("Chèn thành công quận huyện : "+ mod.vi_name)
-                except (Exception, psycopg2.Error) as error:
-                    log_terminal("Lỗi khi chèn dữ liệu vào PostgreSQL:", error)
+                        conn.commit()
+                        log_terminal("Chèn thành công quận huyện : "+ mod.vi_name)
+                    except (Exception, psycopg2.Error) as error:
+                        log_terminal("Lỗi khi chèn dữ liệu vào PostgreSQL:", error)
             case "Xã Phường":
                 mod = model.WardModel()
                 mod.ward_id = item.get('ward_id')
