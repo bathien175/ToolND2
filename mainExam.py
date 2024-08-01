@@ -180,7 +180,7 @@ def center_window(window, width=600, height=440):
 
 def open_administrative_interface():
     app.withdraw()  # Ẩn cửa sổ chính
-    import mainAdministrativeCrawl as secondary  # Import file secondary.py và mở giao diện mới
+    import mainAdministrativeCrawl as secondary  # Import file secondary.py và mở giao diện mới 
     secondary.run_secondary_interface(app)
 
 def open_patient_interface():
