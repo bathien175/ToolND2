@@ -188,6 +188,11 @@ def open_patient_interface():
     import mainPatientCrawl as secondary  # Import file secondary.py và mở giao diện mới
     secondary.run_secondary_interface(app)
 
+def open_patientKCB_interface():
+    app.withdraw()  # Ẩn cửa sổ chính
+    import mainKCBCrawl as secondary  # Import file secondary.py và mở giao diện mới
+    secondary.run_secondary_interface(app)
+
 def open_secondary_interface():
     app.withdraw()  # Ẩn cửa sổ chính
     import mainReportExamNew as secondary  # Import file secondary.py và mở giao diện mới
@@ -742,6 +747,7 @@ new_data_menu = Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Cào dữ liệu mẫu Postgres", menu=new_data_menu)
 new_data_menu.add_command(label="Dữ liệu bệnh nhân", command=open_patient_interface)
 new_data_menu.add_command(label="Dữ liệu hành chính", command=open_administrative_interface)
+new_data_menu.add_command(label="Dữ liệu khám chữa bệnh", command=open_patientKCB_interface)
 
 loadingData()
 
