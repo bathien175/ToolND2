@@ -7,7 +7,6 @@ from PIL import ImageTk, Image
 from babel.numbers import *
 from tkinter import messagebox
 import json
-import threading
 import sourceString as sour
 import sourceModel as model
 import requests
@@ -21,6 +20,7 @@ customtkinter.set_appearance_mode("Light")
 customtkinter.set_default_color_theme("green")
 txt_search = Any
 run_button = Any
+run2_button = Any
 app = Any
 urlAPIfind = "http://192.168.0.77/api/patients/find"
 urlAPIload = "http://192.168.0.77/api/patients/load_patientById/"
@@ -69,6 +69,11 @@ def start_script_thread(selectMode):
             script_thread.start()
         else:
             messagebox.showerror(title="Lỗi thông tin", message="Vui lòng không bỏ trống dữ liệu tìm kiếm!")
+    else:
+        terminal_window, terminal_text = open_terminal_window()
+        app.withdraw()
+        script_thread = threading.Thread(target=run_Script, args=(terminal_text,selectMode))
+        script_thread.start()
 
 def center_window(window, width=600, height=440):
     # Lấy kích thước màn hình
@@ -79,7 +84,7 @@ def center_window(window, width=600, height=440):
     y = (screen_height / 2) - (height / 2)
     window.geometry(f'{width}x{height}+{int(x)}+{int(y)}')
 
-def fetch_one_person(base_url, headers, payload):
+def fetch_one_person(base_url, headers):
     # Tên file để lưu trạng thái
     state_file = 'search_state.json'
     
@@ -90,27 +95,27 @@ def fetch_one_person(base_url, headers, payload):
     else:
         search_state = {}
     
-    # Lấy trang hiện tại từ trạng thái đã lưu hoặc bắt đầu từ trang 1
+    # Lấy trang hiện tại từ trạng thái đã lưu hoặc bắt đầu từ bệnh nhân số 1
     patientIdCurrent = search_state.get("patient_id", 1)
     
     headersFix = headers
     demloi = 1
     
     while True:
-        full_url = base_url + patientIdCurrent
+        full_url = base_url + str(patientIdCurrent)
         response = requests.get(full_url, headers=headersFix)
 
         if response.status_code == 200:
             try:
                 dataf = response.json()
-                data = dataf['data']['patient']
+                datal = dataf['data']
+                data = datal['patient']
 
                 if not data:
-                    print(f"Đã đạt đến cuối danh sách bệnh nhân")
-                    break
-                
-                add_onedata_to_database(data)
-                demloi = 1
+                    print(f"Thông tin bệnh nhân bị rỗng!...")
+                else:
+                    add_onedata_to_database(data)
+                    demloi = 1
                 
                 # Lưu trạng thái hiện tại
                 patientIdCurrent += 1
@@ -489,7 +494,7 @@ def run_Script(terminal_text, selectMode):
 
 #app
 def run_secondary_interface(main_app):
-    global run_button, txt_search, app
+    global run_button, txt_search, app, run2_button
     app = customtkinter.CTkToplevel(main_app)
     app.title("Lấy dữ liệu bệnh nhân")
     center_window(app)
@@ -515,10 +520,10 @@ def run_secondary_interface(main_app):
     txt_search = customtkinter.CTkEntry(master=frame, placeholder_text="VD: 794...", font=('Century Gothic', 13), width=280)
     txt_search.place(x=20, y=100)
 
-    run_button = customtkinter.CTkButton(master=frame, command=start_script_thread(0),text="Chạy theo ID", font=('Tahoma', 13), fg_color="#005369", hover_color="#008097")
-    run_button.place(x=20, y=200)
+    run2_button = customtkinter.CTkButton(master=frame, command=lambda: start_script_thread(0),text="Chạy theo ID", font=('Tahoma', 13), fg_color="#005369", hover_color="#008097")
+    run2_button.place(x=20, y=200)
 
-    run_button = customtkinter.CTkButton(master=frame, command=start_script_thread(1),text="Thực thi", font=('Tahoma', 13), fg_color="#005369", hover_color="#008097")
+    run_button = customtkinter.CTkButton(master=frame, command=lambda: start_script_thread(1),text="Thực thi", font=('Tahoma', 13), fg_color="#005369", hover_color="#008097")
     run_button.place(x=160, y=200)
 
     app.mainloop()

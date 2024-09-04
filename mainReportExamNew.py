@@ -22,6 +22,7 @@ from openpyxl.styles import Font, Alignment, PatternFill
 import threading
 import sourceString as sour
 import requests
+from collections import Counter
 
 #global
 customtkinter.set_appearance_mode("Light")
@@ -33,6 +34,7 @@ date_entry2 = Any
 run_button = Any
 app = Any
 urlAPI = "http://192.168.0.77/api/out_patient_new_regist/baoCaoSoKhamBenh"
+list_big = []
 
 #class
 class PatientModel:
@@ -193,6 +195,58 @@ def validate_dates():
     except ValueError:
         return False
 
+def is_in_icd_range(icd_code, icd_range):
+    # Kiểm tra khớp chính xác
+    if icd_code in icd_range:
+        return True
+    
+    if icd_code == None:
+            return False
+
+    # Kiểm tra khớp với mã gốc chỉ khi mã đầu vào không có phần thập phân
+    if '.' not in icd_code:
+        return any(code.startswith(icd_code + '.') for code in icd_range)
+    
+    return False
+
+# Danh sách mã ICD-10
+icd_range = [
+    "N18",
+    "N18.0",
+    "N18.1",
+    "N18.2",
+    "N18.3",
+    "N18.4",
+    "N18.5",
+    "D69",
+    "D69.0",
+    "M32",
+    "N04",
+    "N32"
+]
+
+def count_icd_occurrences(models, icd_range):
+    # Tạo một Counter để đếm số lần xuất hiện
+    icd_counter = Counter()
+
+    for model in models:
+        primary_icd = model['primary_icd10_code']
+        
+        # Kiểm tra xem primary_icd có khớp với bất kỳ mã nào trong icd_range không
+        for icd in icd_range:
+            if primary_icd == icd or (not '.' in icd and primary_icd.startswith(icd + '.')):
+                icd_counter[icd] += 1
+                break  # Dừng sau khi tìm thấy khớp đầu tiên
+
+    # Chuyển đổi Counter thành dict, bao gồm cả các mã có số đếm là 0
+    result = {icd: icd_counter[icd] for icd in icd_range}
+    
+    return result
+
+def save_to_json(data, filename):
+    with open(filename, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
+
 def open_terminal_window():
     terminal_window = tk.Toplevel(app)
     terminal_window.title("Màn hình chạy dữ liệu")
@@ -234,23 +288,35 @@ def center_window(window, width=600, height=440):
     y = (screen_height / 2) - (height / 2)
     window.geometry(f'{width}x{height}+{int(x)}+{int(y)}')
     
+def search_in_list_big(model):
+    global list_big
+    if len(list_big) > 0:
+        for item in list_big:
+            paCode = item['patient_code']
+            icdCode = item['primary_icd10_code']
+            if paCode == model['patient_code']:
+                if icdCode == model['primary_icd10_code']:
+                    return True
+        return False
+    else:
+        return False
 def format_sheet(ws, date_str):
     # Dòng tiêu đề chính
-    ws.merge_cells('A1:G1')
+    ws.merge_cells('A1:W1')
     title_cell = ws['A1']
     title_cell.value = "Báo cáo sổ khám bệnh"
     title_cell.font = Font(size=16, bold=True)
     title_cell.alignment = Alignment(horizontal="center")
 
     # Dòng ngày khám
-    ws.merge_cells('A2:G2')
+    ws.merge_cells('A2:W2')
     date_cell = ws['A2']
     date_cell.value = f"Ngày khám: {date_str}"
     date_cell.font = Font(size=14, bold=True)
     date_cell.alignment = Alignment(horizontal="center")
 
     # Dòng header các cột
-    headers = ["STT", "Mã bệnh nhân", "Ngày khám", "Mã toa thuốc", "Tình trạng", "Bác sĩ", "Mã đợt khám"]
+    headers = ["STT", "ID bệnh nhân", "Mã bệnh nhân", "out_patient_list_id", "Tên bệnh nhân", "Giới tính", "Ngày sinh", "Địa chỉ", "Code thân nhân", "Trạng thái", "Ngày khám", "Mã đợt khám", "Mã hàng chờ", "Ca", "Loại khám", "Mã khu vực", "BHLS tạm", "Chuẩn đoán tạm", "BHLS", "Chuẩn đoán", "Tên bác sĩ", "Mã ICD", "Tên ICD"]
     header_fill = PatternFill(start_color="90EE90", end_color="90EE90", fill_type="solid")
 
     for col_num, header in enumerate(headers, 1):
@@ -282,7 +348,7 @@ def find_status(id):
     return None
 
 def run_Script(directory,terminal_text):
-    global  date_entry, date_entry2, app, current_date
+    global  date_entry, date_entry2, app, current_date, list_big
     # Hàm để hiển thị thông tin lên terminal
     def log_terminal(message):
         terminal_text.insert(tk.END,message + "\n")
@@ -354,40 +420,70 @@ def run_Script(directory,terminal_text):
                 data = response.json()
                 patient_info = data.get('data', {})
                 for pi in patient_info:
-                    patientmd = PatientModel()
-                    patientmd.stt = demstt
-                    patientmd.code = pi.get('patient_code')
-                    patientmd.dateExam = date.strftime("%Y-%m-%d")
-                    patientmd.status = find_status(pi.get('status'))
-                    patientmd.prescription = pi.get('prescription_id')
-                    patientmd.doctor = pi.get('doctor_name')
-                    patientmd.ticket = pi.get('ticket_id')
-                    listPatient.append(patientmd)
-                    log_terminal(patientmd.ExportModel())
-                    demstt+=1
+                    result = is_in_icd_range(pi.get('primary_icd10_code'), icd_range)
+                    if result == True:
+                        # patientmd = {
+                        #     "stt": demstt,
+                        #     "patient_id": pi.get('patient_id'),
+                        #     "patient_code": pi.get('patient_code'),
+                        #     "out_patient_list_id": pi.get('out_patient_list_id'),
+                        #     "name": pi.get('name'),
+                        #     "gender": pi.get('gender'),
+                        #     "date_of_birth": pi.get('date_of_birth'),
+                        #     "full_address": pi.get('full_address'),
+                        #     "relative_name": pi.get('relative_name'),
+                        #     "status": pi.get('status'),
+                        #     "register_date": date,
+                        #     "ticket_id": pi.get('ticket_id'),
+                        #     "queue_code": pi.get('queue_code'),
+                        #     "shift": pi.get('shift'),
+                        #     "type_exam": pi.get('type_exam'),
+                        #     "zone_code": pi.get('zone_code'),
+                        #     "bhls_temp": pi.get('bhls_temp'),
+                        #     "chandoan_temp": pi.get('chandoan_temp'),
+                        #     "bhls": pi.get('bhls'),
+                        #     "chandoan": pi.get('chandoan'),
+                        #     "doctor_name": pi.get('doctor_name'),
+                        #     "primary_icd10_code": pi.get('primary_icd10_code'),
+                        #     "primary_icd10_name": pi.get('primary_icd10_name')
+                        # }
+                        patientmd = {
+                            "patient_code": pi.get('patient_code'),
+                            "primary_icd10_code": pi.get('primary_icd10_code')
+                        }
+                        listPatient.append(patientmd)
+                        if search_in_list_big(patientmd) == False:
+                            list_big.append(patientmd)
+                        #log_terminal(patientmd.ExportModel())
+                        demstt+=1
             else:
                 print(f"Request thất bại với status code: {response.status_code}")
                 print(response.text)
             # Chuyển listPatient thành DataFrame
-            patient_dict_list = [pt.to_dict() for pt in listPatient]
-            df = pd.DataFrame(patient_dict_list)
-            log_terminal(".........................Chuyển dữ liệu thành công.......................................")
-            # Tạo sheet mới cho từng ngày
-            sheet_name = date.strftime("%d-%m-%Y")
-            ws = wb.create_sheet(title=sheet_name)
-            log_terminal(".........................Tạo Sheet thành công............................................")
-            # Thêm dữ liệu vào sheet
-            for r in range(3):
-                ws.append([])
+            #patient_dict_list = [pt.to_dict() for pt in listPatient]
+            # df = pd.DataFrame(listPatient)
+            # log_terminal(".........................Chuyển dữ liệu thành công.......................................")
+            # # Tạo sheet mới cho từng ngày
+            # sheet_name = date.strftime("%d-%m-%Y")
+            # ws = wb.create_sheet(title=sheet_name)
+            # log_terminal(".........................Tạo Sheet thành công............................................")
+            # # Thêm dữ liệu vào sheet
+            # for r in range(3):
+            #     ws.append([])
 
-            for r in dataframe_to_rows(df, index=False, header=False):
-                ws.append(r)
+            # for r in dataframe_to_rows(df, index=False, header=False):
+            #     ws.append(r)
 
-            # Định dạng sheet
-            format_sheet(ws, sheet_name)
-            log_terminal(".........................Định dạng sheet thành công......................................")
+            # # Định dạng sheet
+            # format_sheet(ws, sheet_name)
+            # log_terminal(".........................Định dạng sheet thành công......................................")
         # Lưu file Excel
-        wb.save(file_path)
+        # wb.save(file_path)
+        # Đếm số lần xuất hiện
+        result2 = count_icd_occurrences(list_big, icd_range)
+
+        # Lưu kết quả vào file JSON
+        save_to_json(result2, 'icd_occurrences.json')
         log_terminal(".........................Hoàn thành xuất dữ liệu báo cáo.................................")
         app.deiconify()
     else:

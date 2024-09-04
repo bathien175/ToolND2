@@ -43,8 +43,28 @@ def update_file_json(l4_value, l6_value):
     save_config(config)
 
 def sanitize_date(date_string):
-    if date_string == "0000-00-00 00:00:00" or not date_string or date_string.startswith("0000-00-00"):
+    if not date_string or date_string == "0000-00-00 00:00:00" or date_string.startswith("0000-00-00"):
         return None
+    
+    # Kiểm tra định dạng chuỗi ngày tháng
+    date_pattern = r'^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}:\d{2})?$'
+    if not re.match(date_pattern, date_string):
+        return None
+    
+    # Tách phần ngày và giờ (nếu có)
+    date_part = date_string.split()[0]
+    year, month, day = map(int, date_part.split('-'))
+    
+    # Kiểm tra tính hợp lệ của năm, tháng, ngày
+    if year == 0 or month == 0 or month > 12 or day == 0:
+        return None
+    
+    # Kiểm tra số ngày trong tháng
+    try:
+        datetime(year, month, day)
+    except ValueError:
+        return None
+    
     return date_string
 
 def update_labels():
@@ -474,7 +494,7 @@ def fetch_data_from_api(header):
                 page_value = p
                 record_value = rc
         except Exception as e:
-             print("Lỗi xảy ra trong quá trình truy cập CSDL... : "+ str(e))
+            print("Lỗi xảy ra trong quá trình truy cập CSDL... : "+ str(e))
         finally:
             if conn:
                 cur.close()
