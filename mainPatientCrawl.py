@@ -16,11 +16,13 @@ import phpserialize
 import psycopg2
 import threading
 import sys
+import mysql.connector as connector
 #global
 customtkinter.set_appearance_mode("Light")
 customtkinter.set_default_color_theme("green")
 txt_search = Any
 run_button = Any
+run2_button = Any
 app = Any
 urlAPIfind = "http://192.168.0.77/api/patients/find"
 urlAPIload = "http://192.168.0.77/api/patients/load_patientById/"
@@ -69,6 +71,16 @@ def start_script_thread(selectMode):
             script_thread.start()
         else:
             messagebox.showerror(title="Lỗi thông tin", message="Vui lòng không bỏ trống dữ liệu tìm kiếm!")
+    elif selectMode == 0:
+        terminal_window, terminal_text = open_terminal_window()
+        app.withdraw()
+        script_thread = threading.Thread(target=run_Script, args=(terminal_text,selectMode))
+        script_thread.start()
+    else:
+        terminal_window, terminal_text = open_terminal_window()
+        app.withdraw()
+        script_thread = threading.Thread(target=run_Script, args=(terminal_text,selectMode))
+        script_thread.start()
 
 def center_window(window, width=600, height=440):
     # Lấy kích thước màn hình
@@ -79,7 +91,7 @@ def center_window(window, width=600, height=440):
     y = (screen_height / 2) - (height / 2)
     window.geometry(f'{width}x{height}+{int(x)}+{int(y)}')
 
-def fetch_one_person(base_url, headers, payload):
+def fetch_one_person(base_url, headers):
     # Tên file để lưu trạng thái
     state_file = 'search_state.json'
     
@@ -90,27 +102,27 @@ def fetch_one_person(base_url, headers, payload):
     else:
         search_state = {}
     
-    # Lấy trang hiện tại từ trạng thái đã lưu hoặc bắt đầu từ trang 1
+    # Lấy trang hiện tại từ trạng thái đã lưu hoặc bắt đầu từ bệnh nhân số 1
     patientIdCurrent = search_state.get("patient_id", 1)
     
     headersFix = headers
     demloi = 1
     
     while True:
-        full_url = base_url + patientIdCurrent
+        full_url = base_url + str(patientIdCurrent)
         response = requests.get(full_url, headers=headersFix)
 
         if response.status_code == 200:
             try:
                 dataf = response.json()
-                data = dataf['data']['patient']
+                datal = dataf['data']
+                data = datal['patient']
 
                 if not data:
-                    print(f"Đã đạt đến cuối danh sách bệnh nhân")
-                    break
-                
-                add_onedata_to_database(data)
-                demloi = 1
+                    print(f"Thông tin bệnh nhân bị rỗng!...")
+                else:
+                    add_onedata_to_database(data)
+                    demloi = 1
                 
                 # Lưu trạng thái hiện tại
                 patientIdCurrent += 1
@@ -120,6 +132,78 @@ def fetch_one_person(base_url, headers, payload):
                 
             except:
                 print(f"Lỗi khi lấy bệnh nhân {patientIdCurrent} với mã lỗi: {response.status_code}")
+                demloi +=1
+        else:
+            if response.status_code == 10000:
+                print("Lỗi out session đang cố kết nối lại...")
+                bTry = False
+                errorChrome = 1
+                while bTry == False:
+                    bTry = sour._initSelenium_()
+                    if bTry == False:
+                        if errorChrome >= 10:
+                            app.destroy() 
+                        else:
+                            errorChrome += 1
+                time.sleep(3)
+                # login
+                sour._login_("quyen.ngoq", "74777477")
+                # ấn nút login
+                time.sleep(0.5)
+                headersFix['Userkey'] = sour.secretKey
+                headersFix['Authorization'] = sour.secretKey
+                print("Kết nối thành công...")  
+                demloi = 1    
+            else:
+                print(f"Lỗi khi lấy bệnh nhân {patientIdCurrent} với mã lỗi: {response.status_code}")
+                demloi +=1
+
+        if demloi == 10:
+            print('Lỗi quá nhiều lần! Đóng quá trình lấy trang!')
+            break
+
+    print(f"Hoàn tất lấy dữ liệu thành công!...")
+
+def fetch_one_person_old(base_url, headers):
+    # Tên file để lưu trạng thái
+    state_file = 'search_state.json'
+    
+    # Đọc trạng thái từ file nếu tồn tại
+    if os.path.exists(state_file):
+        with open(state_file, 'r') as f:
+            search_state = json.load(f)
+    else:
+        search_state = {}
+    
+    # Lấy trang hiện tại từ trạng thái đã lưu hoặc bắt đầu từ bệnh nhân số 1
+    patientIdCurrent = search_state.get("patient_id", 1)
+    listpatientOld = loadData(patientIdCurrent)
+    headersFix = headers
+    demloi = 1
+    
+    for item in listpatientOld:
+        patientIdOld = item[0]
+        full_url = base_url + str(patientIdOld)
+        response = requests.get(full_url, headers=headersFix)
+
+        if response.status_code == 200:
+            try:
+                dataf = response.json()
+                datal = dataf['data']
+                data = datal['patient']
+
+                if not data:
+                    print(f"Thông tin bệnh nhân bị rỗng!...")
+                else:
+                    add_onedata_to_database(data)
+                    demloi = 1
+                
+                search_state['patient_id'] = patientIdOld
+                with open(state_file, 'w') as f:
+                    json.dump(search_state, f)
+                
+            except:
+                print(f"Lỗi khi lấy bệnh nhân {patientIdOld} với mã lỗi: {response.status_code}")
                 demloi +=1
         else:
             if response.status_code == 10000:
@@ -477,8 +561,10 @@ def run_Script(terminal_text, selectMode):
     try:
         if selectMode == 1:
             fetch_all_pages(urlAPIfind, headers, payload)
-        else:
+        elif selectMode == 0:
             fetch_one_person(urlAPIload, headers)
+        else:
+            fetch_one_person_old(urlAPIload, headers)
     finally:
         loading = False
         loading_thread.join()
@@ -487,9 +573,26 @@ def run_Script(terminal_text, selectMode):
     terminal_window.destroy()
     app.deiconify()
 
+def loadData(pid):
+    mydb = connector.connect(
+            host="192.168.0.127",
+            port="3306",
+            user="root",
+            password="So17052001",
+            database="nhidong2_full")
+    mycursor = mydb.cursor()
+    query_string = f"select person_id from patient p where person_id >= {pid}"
+    listPatients = mycursor.execute(query_string, multi=True)
+    all_results = []
+    for result in listPatients:
+        if result.with_rows:
+            all_results = result.fetchall()
+            break
+    return all_results
+
 #app
 def run_secondary_interface(main_app):
-    global run_button, txt_search, app
+    global run_button, txt_search, app, run2_button
     app = customtkinter.CTkToplevel(main_app)
     app.title("Lấy dữ liệu bệnh nhân")
     center_window(app)
@@ -515,10 +618,13 @@ def run_secondary_interface(main_app):
     txt_search = customtkinter.CTkEntry(master=frame, placeholder_text="VD: 794...", font=('Century Gothic', 13), width=280)
     txt_search.place(x=20, y=100)
 
-    run_button = customtkinter.CTkButton(master=frame, command=start_script_thread(0),text="Chạy theo ID", font=('Tahoma', 13), fg_color="#005369", hover_color="#008097")
-    run_button.place(x=20, y=200)
+    run2_button = customtkinter.CTkButton(master=frame, command=lambda: start_script_thread(0),text="Chạy theo ID", font=('Tahoma', 13), fg_color="#005369", hover_color="#008097")
+    run2_button.place(x=20, y=150)
 
-    run_button = customtkinter.CTkButton(master=frame, command=start_script_thread(1),text="Thực thi", font=('Tahoma', 13), fg_color="#005369", hover_color="#008097")
-    run_button.place(x=160, y=200)
+    run_button = customtkinter.CTkButton(master=frame, command=lambda: start_script_thread(1),text="Thực thi", font=('Tahoma', 13), fg_color="#005369", hover_color="#008097")
+    run_button.place(x=160, y=150)
+
+    run3_button = customtkinter.CTkButton(master=frame, command=lambda: start_script_thread(2),text="Dữ liệu cũ", font=('Tahoma', 13), fg_color="#005369", hover_color="#008097")
+    run3_button.place(x=100, y=200)
 
     app.mainloop()
